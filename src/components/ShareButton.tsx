@@ -62,7 +62,7 @@ export function ShareButton({ cardData }: Props) {
           new ClipboardItem({ 'image/png': blob }),
         ]);
         setState('copied');
-        showToast('Screenshot copied! Link: ' + shareUrl);
+        showToast('Screenshot copied to clipboard!');
       } catch {
         // Final fallback: copy URL to clipboard
         await navigator.clipboard.writeText(shareUrl);

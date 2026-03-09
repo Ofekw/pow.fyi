@@ -168,10 +168,11 @@ export function renderShareCard(data: ShareCardData): HTMLCanvasElement {
   const numDays = Math.min(daily.length, 7);
   const barGap = 12;
   const barAreaW = CARD_W - PAD * 2;
-  const barW = (barAreaW - barGap * (numDays - 1)) / numDays;
+  const barW = numDays > 1 ? (barAreaW - barGap * (numDays - 1)) / numDays : barAreaW;
 
-  // Find max snow for scaling
-  const maxSnow = Math.max(...daily.slice(0, 7).map((d) => d.snowfallSum), 0.1);
+  // Find max snow for scaling (guard against empty array)
+  const snowValues = daily.slice(0, 7).map((d) => d.snowfallSum);
+  const maxSnow = snowValues.length > 0 ? Math.max(...snowValues, 0.1) : 0.1;
 
   for (let i = 0; i < numDays; i++) {
     const d = daily[i]!;

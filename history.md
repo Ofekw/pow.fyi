@@ -943,3 +943,31 @@ Prevents conflicting snowfall period totals between different snow visualization
 - `src/components/__tests__/Layout.test.tsx`
 - `public/llms.txt`
 - `src/data/nws.ts`
+
+---
+
+## Share Links Feature
+
+### What Changed
+Added ability to share the forecast for a specific resort as a branded screenshot image with a link back to the site.
+
+### Why
+Users wanted to share snow forecasts with friends via messaging apps and social media. The share feature generates a visual card with the 7-day snow forecast, resort info, and pow.fyi branding so recipients can see the forecast at a glance and follow the link for details.
+
+### Implementation
+- **Canvas-based share card** (`src/utils/shareCard.ts`): Renders a 600×420 branded image using the native Canvas API — no external dependencies. Includes resort name, region, elevation, 7-day snow bars with temperatures, date range, total snowfall, and pow.fyi URL watermark.
+- **ShareButton component** (`src/components/ShareButton.tsx`): Handles the full share flow:
+  1. Generates the share card image via Canvas
+  2. Tries the Web Share API with file support (mobile-native share sheets)
+  3. Falls back to copying the image to clipboard via `ClipboardItem`
+  4. Final fallback: copies the resort URL to clipboard
+  5. Shows a toast notification with the result
+- **ResortPage integration**: Share button added to header next to Refresh button, styled consistently with existing action buttons. Passes current resort data, elevation band, units, and 7-day forecast to the share card renderer.
+
+### Key files affected
+- `src/utils/shareCard.ts` (new)
+- `src/components/ShareButton.tsx` (new)
+- `src/pages/ResortPage.tsx`
+- `src/pages/ResortPage.css`
+- `src/utils/__tests__/shareCard.test.ts` (new)
+- `src/components/__tests__/ShareButton.test.tsx` (new)
