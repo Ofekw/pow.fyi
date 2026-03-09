@@ -9,11 +9,13 @@ import type { ShareCardData } from '@/utils/shareCard';
 
 interface Props {
   cardData: ShareCardData | null;
+  /** Index of the selected forecast day, encoded in the share URL */
+  selectedDayIdx?: number;
 }
 
 type ShareState = 'idle' | 'generating' | 'copied' | 'shared' | 'error';
 
-export function ShareButton({ cardData }: Props) {
+export function ShareButton({ cardData, selectedDayIdx }: Props) {
   const [state, setState] = useState<ShareState>('idle');
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -44,7 +46,11 @@ export function ShareButton({ cardData }: Props) {
     clearTimeout(resetTimerRef.current);
     setState('generating');
 
-    const shareUrl = `${window.location.origin}/resort/${cardData.resort.slug}`;
+    const params = new URLSearchParams();
+    if (cardData.band !== 'mid') params.set('band', cardData.band);
+    if (selectedDayIdx != null && selectedDayIdx > 0) params.set('day', String(selectedDayIdx));
+    const qs = params.toString();
+    const shareUrl = `${window.location.origin}/resort/${cardData.resort.slug}${qs ? `?${qs}` : ''}`;
 
     try {
       const canvas = renderShareCard(cardData);
@@ -127,7 +133,7 @@ export function ShareButton({ cardData }: Props) {
     }
 
     scheduleReset();
-  }, [cardData, showToast, scheduleReset]);
+  }, [cardData, selectedDayIdx, showToast, scheduleReset]);
 
   const icon = state === 'copied' || state === 'shared'
     ? <Check size={14} />

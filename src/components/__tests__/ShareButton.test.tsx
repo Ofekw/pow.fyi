@@ -1,5 +1,6 @@
-import { describe, it, expect, mock, afterAll } from 'bun:test';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, mock, afterAll, beforeEach } from 'bun:test';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ShareButton } from '@/components/ShareButton';
 import type { ShareCardData } from '@/utils/shareCard';
 
@@ -56,6 +57,39 @@ function makeCardData(): ShareCardData {
   };
 }
 
+/** Save and restore navigator properties between tests */
+let origShare: typeof navigator.share;
+let origCanShare: typeof navigator.canShare;
+let origClipboard: typeof navigator.clipboard;
+
+beforeEach(() => {
+  origShare = navigator.share;
+  origCanShare = navigator.canShare;
+  origClipboard = navigator.clipboard;
+});
+
+afterAll(() => {
+  Object.defineProperty(navigator, 'share', { value: origShare, configurable: true });
+  Object.defineProperty(navigator, 'canShare', { value: origCanShare, configurable: true });
+  Object.defineProperty(navigator, 'clipboard', { value: origClipboard, configurable: true });
+});
+
+function setNavigator(overrides: {
+  share?: typeof navigator.share;
+  canShare?: typeof navigator.canShare;
+  clipboard?: Partial<typeof navigator.clipboard>;
+}) {
+  if ('share' in overrides) {
+    Object.defineProperty(navigator, 'share', { value: overrides.share, configurable: true });
+  }
+  if ('canShare' in overrides) {
+    Object.defineProperty(navigator, 'canShare', { value: overrides.canShare, configurable: true });
+  }
+  if ('clipboard' in overrides) {
+    Object.defineProperty(navigator, 'clipboard', { value: overrides.clipboard, configurable: true });
+  }
+}
+
 describe('ShareButton', () => {
   it('renders a share button', () => {
     render(<ShareButton cardData={makeCardData()} />);
@@ -73,5 +107,135 @@ describe('ShareButton', () => {
     render(<ShareButton cardData={null} />);
     const btn = screen.getByRole('button', { name: /share forecast/i });
     expect(btn).toBeDisabled();
+  });
+
+  it('shows "Shared!" and toast on successful Web Share with files', async () => {
+    const user = userEvent.setup();
+    const shareMock = mock(() => Promise.resolve());
+    const canShareMock = mock(() => true);
+    setNavigator({ share: shareMock, canShare: canShareMock });
+
+    render(<ShareButton cardData={makeCardData()} />);
+    await user.click(screen.getByRole('button', { name: /share forecast/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Shared!')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Shared successfully!');
+    expect(shareMock).toHaveBeenCalledTimes(1);
+    // Verify files were included since canShare returned true
+    const callArg = shareMock.mock.calls[0][0] as { files?: File[] };
+    expect(callArg.files).toBeDefined();
+    expect(callArg.files!.length).toBe(1);
+  });
+
+  it('shares URL-only when canShare rejects files', async () => {
+    const user = userEvent.setup();
+    const shareMock = mock(() => Promise.resolve());
+    const canShareMock = mock(() => false);
+    setNavigator({ share: shareMock, canShare: canShareMock });
+
+    render(<ShareButton cardData={makeCardData()} />);
+    await user.click(screen.getByRole('button', { name: /share forecast/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Shared!')).toBeInTheDocument();
+    });
+    // Verify no files were included since canShare returned false
+    const callArg = shareMock.mock.calls[0][0] as { files?: File[]; url?: string };
+    expect(callArg.files).toBeUndefined();
+    expect(callArg.url).toContain('/resort/vail-co');
+  });
+
+  it('resets to idle when user cancels Web Share (AbortError)', async () => {
+    const user = userEvent.setup();
+    const abortErr = new DOMException('Share cancelled', 'AbortError');
+    const shareMock = mock(() => Promise.reject(abortErr));
+    setNavigator({ share: shareMock, canShare: mock(() => true) });
+
+    render(<ShareButton cardData={makeCardData()} />);
+    await user.click(screen.getByRole('button', { name: /share forecast/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Share')).toBeInTheDocument();
+    });
+  });
+
+  it('falls back to clipboard image when Web Share is unavailable', async () => {
+    const user = userEvent.setup();
+    const writeMock = mock(() => Promise.resolve());
+    setNavigator({
+      share: undefined,
+      canShare: undefined,
+      clipboard: { write: writeMock, writeText: mock(() => Promise.resolve()), readText: mock(() => Promise.resolve('')) } as unknown as Clipboard,
+    });
+
+    render(<ShareButton cardData={makeCardData()} />);
+    await user.click(screen.getByRole('button', { name: /share forecast/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Screenshot copied to clipboard!');
+    expect(writeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to clipboard URL when image clipboard write fails', async () => {
+    const user = userEvent.setup();
+    const writeTextMock = mock(() => Promise.resolve());
+    setNavigator({
+      share: undefined,
+      canShare: undefined,
+      clipboard: {
+        write: mock(() => Promise.reject(new Error('Not allowed'))),
+        writeText: writeTextMock,
+        readText: mock(() => Promise.resolve('')),
+      } as unknown as Clipboard,
+    });
+
+    render(<ShareButton cardData={makeCardData()} />);
+    await user.click(screen.getByRole('button', { name: /share forecast/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Link copied to clipboard!');
+    expect(writeTextMock).toHaveBeenCalledTimes(1);
+    expect(writeTextMock.mock.calls[0][0]).toContain('/resort/vail-co');
+  });
+
+  it('includes band and day query params in share URL', async () => {
+    const user = userEvent.setup();
+    const shareMock = mock(() => Promise.resolve());
+    const canShareMock = mock(() => false);
+    setNavigator({ share: shareMock, canShare: canShareMock });
+
+    const data = makeCardData();
+    data.band = 'top';
+    render(<ShareButton cardData={data} selectedDayIdx={3} />);
+    await user.click(screen.getByRole('button', { name: /share forecast/i }));
+
+    await waitFor(() => {
+      expect(shareMock).toHaveBeenCalledTimes(1);
+    });
+    const callArg = shareMock.mock.calls[0][0] as { url?: string };
+    expect(callArg.url).toContain('band=top');
+    expect(callArg.url).toContain('day=3');
+  });
+
+  it('omits query params when band is mid and day is 0', async () => {
+    const user = userEvent.setup();
+    const shareMock = mock(() => Promise.resolve());
+    const canShareMock = mock(() => false);
+    setNavigator({ share: shareMock, canShare: canShareMock });
+
+    render(<ShareButton cardData={makeCardData()} selectedDayIdx={0} />);
+    await user.click(screen.getByRole('button', { name: /share forecast/i }));
+
+    await waitFor(() => {
+      expect(shareMock).toHaveBeenCalledTimes(1);
+    });
+    const callArg = shareMock.mock.calls[0][0] as { url?: string };
+    expect(callArg.url).not.toContain('?');
   });
 });
