@@ -12,7 +12,9 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { ElevationToggle } from '@/components/ElevationToggle';
 import { SnowTimeline } from '@/components/SnowTimeline';
 import { ConditionsSummary } from '@/components/ConditionsSummary';
-import { ShareButton } from '@/components/ShareButton';
+import { useShare } from '@/context/ShareContext';
+import { usePageMeta } from '@/hooks/usePageMeta';
+import { renderShareCard } from '@/utils/shareCard';
 import { DailyForecastChart } from '@/components/charts/DailyForecastChart';
 import { HourlyDetailChart } from '@/components/charts/HourlyDetailChart';
 import { HourlySnowChart } from '@/components/charts/HourlySnowChart';
@@ -35,6 +37,7 @@ export function ResortPage() {
   const { toggle: toggleFav, isFav } = useFavorites();
   const { temp, elev, snow } = useUnits();
   const { tz, fmtDate } = useTimezone();
+  const { setShareData } = useShare();
 
   // Initialise elevation band and selected day from URL query params (deep-link support)
   const initialBand = useMemo(() => {
@@ -131,6 +134,62 @@ export function ResortPage() {
     return Math.max(...depths) * 100; // m → cm
   }, [forecast]);
 
+  // Compute 7-day total snowfall
+  const weekTotalSnow = bandData
+    ? bandData.daily.reduce((s, d) => s + d.snowfallSum, 0)
+    : 0;
+
+  // Build share card data for the ShareButton
+  const shareCardData: ShareCardData | null = useMemo(
+    () =>
+      resort && bandData
+        ? {
+            resort,
+            daily: bandData.daily,
+            band,
+            elevation: bandData.elevation,
+            weekTotalSnow,
+            snowUnit: snow,
+            tempUnit: temp,
+            elevUnit: elev,
+          }
+        : null,
+    [bandData, resort, band, weekTotalSnow, snow, temp, elev],
+  );
+
+  // Register share data with the global fab
+  useEffect(() => {
+    setShareData(shareCardData, selectedDayIdx);
+  }, [shareCardData, selectedDayIdx, setShareData]);
+
+  // Clear share data when leaving this page
+  useEffect(() => {
+    return () => setShareData(null);
+  }, [setShareData]);
+
+  // Generate OG image data URL from the share card canvas
+  const ogImageUrl = useMemo(() => {
+    if (!shareCardData) return null;
+    try {
+      return renderShareCard(shareCardData).toDataURL('image/png');
+    } catch {
+      return null;
+    }
+  }, [shareCardData]);
+
+  // Build OG meta content
+  const ogTitle = resort ? `${resort.name} Snow Forecast | Pow.fyi` : 'Pow.fyi — Ski Resort Snow Forecasts';
+  const ogDescription = resort
+    ? weekTotalSnow > 0
+      ? `${resort.name} — ${snow === 'in' ? `${Math.round(cmToIn(weekTotalSnow))}″` : `${Math.round(weekTotalSnow)}cm`} of new snow forecast over the next 7 days. Free ski resort forecasts.`
+      : `7-day snow forecast for ${resort.name}, ${resort.region}. Free ski resort forecasts.`
+    : 'Free & open-source ski resort snow forecasts, historical snowfall, and weather visualizations.';
+  const ogUrl = resort
+    ? `${window.location.origin}/resort/${resort.slug}`
+    : window.location.href;
+
+  usePageMeta({ title: ogTitle, description: ogDescription, url: ogUrl, image: ogImageUrl });
+
   if (!resort) {
     return (
       <div className="resort-page__empty">
@@ -143,25 +202,6 @@ export function ResortPage() {
   const selectedDayLabel = selectedDay
     ? fmtDate(selectedDay.date + 'T12:00:00', { weekday: 'long', month: 'short', day: 'numeric' })
     : '';
-
-  // Compute 7-day total snowfall
-  const weekTotalSnow = bandData
-    ? bandData.daily.reduce((s, d) => s + d.snowfallSum, 0)
-    : 0;
-
-  // Build share card data for the ShareButton
-  const shareCardData: ShareCardData | null = bandData
-    ? {
-        resort,
-        daily: bandData.daily,
-        band,
-        elevation: bandData.elevation,
-        weekTotalSnow,
-        snowUnit: snow,
-        tempUnit: temp,
-        elevUnit: elev,
-      }
-    : null;
 
   return (
     <div className="resort-page">
@@ -192,12 +232,9 @@ export function ResortPage() {
           </p>
         </div>
         <div className="resort-page__header-right">
-          <div className="resort-page__header-actions">
-            <ShareButton cardData={shareCardData} selectedDayIdx={selectedDayIdx} />
-            <button className="resort-page__refresh" onClick={handleRefresh} disabled={loading}>
-              {loading ? 'Loading…' : <><RefreshCw size={14} /> Refresh</>}
-            </button>
-          </div>
+          <button className="resort-page__refresh" onClick={handleRefresh} disabled={loading}>
+            {loading ? 'Loading…' : <><RefreshCw size={14} /> Refresh</>}
+          </button>
           {lastRefreshed && (
             <span className="resort-page__last-refreshed">
               {fmtDate(lastRefreshed.toISOString(), { hour: 'numeric', minute: '2-digit' })}

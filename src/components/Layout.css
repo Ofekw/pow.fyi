@@ -46,6 +46,17 @@
   cursor: not-allowed;
 }
 
+/* ── Share FAB state modifiers ────────────────── */
+.share-btn--copied,
+.share-btn--shared {
+  color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+}
+.share-btn--error {
+  color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+}
+
 /* ── Alert Toggle ─────────────────────────────── */
 .fab--alert {
   font-size: 1.1rem;

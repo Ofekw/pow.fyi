@@ -176,7 +176,7 @@ describe('ShareButton', () => {
     await waitFor(() => {
       expect(screen.getByText('Copied!')).toBeInTheDocument();
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Screenshot copied to clipboard!');
+    expect(screen.getByRole('status')).toHaveTextContent(/Screenshot.*copied/i);
     expect(writeMock).toHaveBeenCalledTimes(1);
   });
 

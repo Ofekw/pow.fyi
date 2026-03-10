@@ -3,12 +3,15 @@ import { Outlet } from 'react-router-dom';
 import { Globe, ChevronUp, Info } from 'lucide-react';
 import { useUnits } from '@/context/UnitsContext';
 import { useTimezone, TZ_OPTIONS, getUtcOffset } from '@/context/TimezoneContext';
+import { useShare } from '@/context/ShareContext';
+import { ShareButton } from '@/components/ShareButton';
 // import { useSnowAlerts } from '@/hooks/useSnowAlerts';
 import './Layout.css';
 
 export function Layout() {
   const { units, toggle, temp, elev } = useUnits();
   const { tzRaw, tzLabel, setTz } = useTimezone();
+  const { cardData, selectedDayIdx } = useShare();
   // const { statusTitle, toggleAlerts, isSupported, enabled, permission } = useSnowAlerts();
   const [tzOpen, setTzOpen] = useState(false);
   const [tzSearch, setTzSearch] = useState('');
@@ -125,6 +128,10 @@ export function Layout() {
             </div>
           )}
         </div>
+
+        {cardData && (
+          <ShareButton cardData={cardData} selectedDayIdx={selectedDayIdx} className="fab fab--icon" />
+        )}
 
         <div className="info-popover" ref={infoRef}>
           <button
