@@ -11,11 +11,13 @@ interface Props {
   cardData: ShareCardData | null;
   /** Index of the selected forecast day, encoded in the share URL */
   selectedDayIdx?: number;
+  /** Optional CSS class to use instead of the default resort-page__share class */
+  className?: string;
 }
 
 type ShareState = 'idle' | 'generating' | 'copied' | 'shared' | 'error';
 
-export function ShareButton({ cardData, selectedDayIdx }: Props) {
+export function ShareButton({ cardData, selectedDayIdx, className }: Props) {
   const [state, setState] = useState<ShareState>('idle');
   const [toast, setToast] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -84,24 +86,35 @@ export function ShareButton({ cardData, selectedDayIdx }: Props) {
         }
       }
 
-      // Fallback: copy image to clipboard + show URL
+      // Fallback: copy image + URL to clipboard
       if (typeof navigator !== 'undefined' && navigator.clipboard?.write) {
         try {
           await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob }),
+            new ClipboardItem({
+              'image/png': blob,
+              'text/plain': new Blob([shareUrl], { type: 'text/plain' }),
+            }),
           ]);
           setState('copied');
-          showToast('Screenshot copied to clipboard!');
+          showToast(`Screenshot + link copied! ${shareUrl}`);
         } catch {
-          // Final fallback: copy URL to clipboard if available
-          if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(shareUrl);
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob }),
+            ]);
             setState('copied');
-            showToast('Link copied to clipboard!');
-          } else {
-            // No clipboard access; show URL so user can copy manually
-            setState('copied');
-            showToast(`Share link: ${shareUrl}`);
+            showToast(`Screenshot copied! Link: ${shareUrl}`);
+          } catch {
+            // Final fallback: copy URL to clipboard if available
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(shareUrl);
+              setState('copied');
+              showToast('Link copied to clipboard!');
+            } else {
+              // No clipboard access; show URL so user can copy manually
+              setState('copied');
+              showToast(`Share link: ${shareUrl}`);
+            }
           }
         }
       } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -154,13 +167,18 @@ export function ShareButton({ cardData, selectedDayIdx }: Props) {
   return (
     <>
       <button
-        className={`resort-page__share ${state !== 'idle' && state !== 'generating' ? 'resort-page__share--' + state : ''}`}
+        className={
+          className
+            ? `${className} ${state !== 'idle' && state !== 'generating' ? 'share-btn--' + state : ''}`
+            : `resort-page__share ${state !== 'idle' && state !== 'generating' ? 'resort-page__share--' + state : ''}`
+        }
         onClick={handleShare}
         disabled={!cardData || state === 'generating'}
         aria-label="Share forecast"
+        aria-busy={state === 'generating'}
         title="Share forecast screenshot"
       >
-        {icon} {label}
+        {className ? icon : <>{icon} {label}</>}
       </button>
       {toast && (
         <div className="share-toast animate-fade-in" role="status" aria-live="polite">

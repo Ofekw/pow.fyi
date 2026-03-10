@@ -971,3 +971,28 @@ Users wanted to share snow forecasts with friends via messaging apps and social 
 - `src/pages/ResortPage.css`
 - `src/utils/__tests__/shareCard.test.ts` (new)
 - `src/components/__tests__/ShareButton.test.tsx` (new)
+
+---
+
+## Share FAB Follow-up
+
+### What changed
+- Moved resort-page sharing into a layout-level FAB backed by `ShareContext`, so the share target follows the active resort, selected elevation band, and selected day without duplicating a page-header button.
+- Extended `ShareButton` with an icon-only FAB mode and a richer clipboard fallback that attempts to copy both the rendered image and the deep-linked resort URL before degrading to image-only or URL-only copy.
+- Updated shared test providers and layout/share button tests so app-level renders exercise the same share context wiring as production.
+- Added the PR screenshot workflow guard so forked pull requests still upload screenshot artifacts without failing when the token lacks permission to comment upstream.
+
+### Why
+- Keeps sharing prominent and consistent across resort pages while preserving existing deep-link share URLs.
+- Improves fallback sharing behavior in browsers that support multi-type clipboard writes and closes the provider/test gap called out in PR review.
+
+### Key files affected
+- `src/context/ShareContext.tsx`
+- `src/components/Layout.tsx`
+- `src/components/Layout.css`
+- `src/components/ShareButton.tsx`
+- `src/pages/ResortPage.tsx`
+- `src/test/test-utils.tsx`
+- `src/components/__tests__/Layout.test.tsx`
+- `src/components/__tests__/ShareButton.test.tsx`
+- `.github/workflows/pr-ci.yml`
