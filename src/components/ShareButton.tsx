@@ -2,10 +2,10 @@
  * ShareButton — Generates a share card screenshot and shares via
  * the Web Share API or copies to clipboard as fallback.
  */
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Share2, Check, Copy, X } from 'lucide-react';
-import { renderShareCard, shareCardToBlob } from '@/utils/shareCard';
-import type { ShareCardData } from '@/utils/shareCard';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Share, Check, Copy, X } from "lucide-react";
+import { renderShareCard, shareCardToBlob } from "@/utils/shareCard";
+import type { ShareCardData } from "@/utils/shareCard";
 
 interface Props {
   cardData: ShareCardData | null;
@@ -17,13 +17,17 @@ interface Props {
   iconOnly?: boolean;
 }
 
-type ShareState = 'idle' | 'generating' | 'copied' | 'shared' | 'error';
+type ShareState = "idle" | "generating" | "copied" | "shared" | "error";
 
 export function ShareButton({ cardData, selectedDayIdx, className, iconOnly = false }: Props) {
   const [state, setState] = useState<ShareState>('idle');
   const [toast, setToast] = useState<string | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -41,18 +45,19 @@ export function ShareButton({ cardData, selectedDayIdx, className, iconOnly = fa
 
   const scheduleReset = useCallback(() => {
     clearTimeout(resetTimerRef.current);
-    resetTimerRef.current = setTimeout(() => setState('idle'), 2000);
+    resetTimerRef.current = setTimeout(() => setState("idle"), 2000);
   }, []);
 
   const handleShare = useCallback(async () => {
     if (!cardData) return;
 
     clearTimeout(resetTimerRef.current);
-    setState('generating');
+    setState("generating");
 
     const params = new URLSearchParams();
-    if (cardData.band !== 'mid') params.set('band', cardData.band);
-    if (selectedDayIdx != null && selectedDayIdx > 0) params.set('day', String(selectedDayIdx));
+    if (cardData.band !== "mid") params.set("band", cardData.band);
+    if (selectedDayIdx != null && selectedDayIdx > 0)
+      params.set("day", String(selectedDayIdx));
     const qs = params.toString();
     const shareUrl = `${window.location.origin}/resort/${cardData.resort.slug}${qs ? `?${qs}` : ''}`;
     const displayUrl = `pow.fyi/resort/${cardData.resort.slug}${qs ? `?${qs}` : ''}`;
@@ -65,24 +70,33 @@ export function ShareButton({ cardData, selectedDayIdx, className, iconOnly = fa
       // Try Web Share API — prefer file share, fall back to URL-only share
       if (navigator.share) {
         const file = new File([blob], `${cardData.resort.slug}-forecast.png`, {
-          type: 'image/png',
+          type: "image/png",
         });
-        const fileShareData = { title: shareText, text: shareText, url: shareUrl, files: [file] };
-        const urlShareData = { title: shareText, text: shareText, url: shareUrl };
+        const fileShareData = {
+          title: shareText,
+          text: shareText,
+          url: shareUrl,
+          files: [file],
+        };
+        const urlShareData = {
+          title: shareText,
+          text: shareText,
+          url: shareUrl,
+        };
 
         const canShareFiles = navigator.canShare?.(fileShareData) ?? false;
         const shareData = canShareFiles ? fileShareData : urlShareData;
 
         try {
           await navigator.share(shareData);
-          setState('shared');
-          showToast('Shared successfully!');
+          setState("shared");
+          showToast("Shared successfully!");
           scheduleReset();
           return;
         } catch (err) {
           // User cancelled — reset and stop
-          if (err instanceof Error && err.name === 'AbortError') {
-            setState('idle');
+          if (err instanceof Error && err.name === "AbortError") {
+            setState("idle");
             return;
           }
           // Other share error — fall through to clipboard
@@ -122,52 +136,61 @@ export function ShareButton({ cardData, selectedDayIdx, className, iconOnly = fa
             }
           }
         }
-      } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        // No image clipboard support, but can still copy URL
+      } else if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard?.writeText
+      ) {
+        // No image clipboard support — copy URL only
         await navigator.clipboard.writeText(shareUrl);
-        setState('copied');
-        showToast('Link copied to clipboard!');
+        setState("copied");
+        showToast("Link copied to clipboard!");
       } else {
-        // No clipboard API available; show URL so user can copy manually
-        setState('copied');
+        setState("copied");
         showToast(`Share link: ${shareUrl}`);
       }
     } catch {
       // Image generation failed — still try to share the URL
       try {
-        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        if (
+          typeof navigator !== "undefined" &&
+          navigator.clipboard?.writeText
+        ) {
           await navigator.clipboard.writeText(shareUrl);
-          setState('copied');
-          showToast('Link copied to clipboard!');
+          setState("copied");
+          showToast("Link copied to clipboard!");
         } else {
           // No clipboard API available; show URL so user can copy manually
-          setState('copied');
+          setState("copied");
           showToast(`Share link: ${shareUrl}`);
         }
       } catch {
-        setState('error');
-        showToast('Failed to share forecast');
+        setState("error");
+        showToast("Failed to share forecast");
       }
     }
 
     scheduleReset();
   }, [cardData, selectedDayIdx, showToast, scheduleReset]);
 
-  const icon = state === 'copied' || state === 'shared'
-    ? <Check size={14} />
-    : state === 'error'
-      ? <X size={14} />
-      : state === 'generating'
-        ? <Copy size={14} />
-        : <Share2 size={14} />;
+  const icon =
+    state === "copied" || state === "shared" ? (
+      <Check size={14} />
+    ) : state === "error" ? (
+      <X size={14} />
+    ) : state === "generating" ? (
+      <Copy size={14} />
+    ) : (
+      <Share size={14} />
+    );
 
-  const label = state === 'copied'
-    ? 'Copied!'
-    : state === 'shared'
-      ? 'Shared!'
-      : state === 'generating'
-        ? 'Generating…'
-        : 'Share';
+  const label =
+    state === "copied"
+      ? "Copied!"
+      : state === "shared"
+        ? "Shared!"
+        : state === "generating"
+          ? "Generating…"
+          : "Share";
 
   return (
     <>
@@ -186,7 +209,11 @@ export function ShareButton({ cardData, selectedDayIdx, className, iconOnly = fa
         {iconOnly ? icon : <>{icon} {label}</>}
       </button>
       {toast && (
-        <div className="share-toast animate-fade-in" role="status" aria-live="polite">
+        <div
+          className="share-toast animate-fade-in"
+          role="status"
+          aria-live="polite"
+        >
           {toast}
         </div>
       )}
