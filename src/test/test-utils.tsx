@@ -3,9 +3,10 @@ import { render, type RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { UnitsProvider } from '@/context/UnitsContext';
 import { TimezoneProvider } from '@/context/TimezoneContext';
+import { ShareProvider } from '@/context/ShareContext';
 
 /**
- * Wraps children in all app providers (Units, Timezone, Router).
+ * Wraps children in all app providers (Units, Timezone, Share, Router).
  * Pass `routerProps` to configure MemoryRouter initial entries.
  */
 export function AllProviders({
@@ -18,7 +19,9 @@ export function AllProviders({
   return (
     <UnitsProvider>
       <TimezoneProvider>
-        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+        <ShareProvider>
+          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+        </ShareProvider>
       </TimezoneProvider>
     </UnitsProvider>
   );

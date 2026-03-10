@@ -961,3 +961,53 @@ Prevents conflicting snowfall period totals between different snow visualization
 - `src/pages/HomePage.tsx` — `isMfjhEasterEgg` flag, auto-dismiss `useEffect`, overlay JSX
 - `src/pages/HomePage.css` — `.home__easter-egg--mfjh`, `.home__easter-egg-image--mfjh`, `@keyframes mfjhGrow`
 - `src/pages/__tests__/HomePage.test.tsx` — 5 new MFJH easter egg tests
+## Share Links Feature
+
+### What Changed
+Added ability to share the forecast for a specific resort as a branded screenshot image with a link back to the site.
+
+### Why
+Users wanted to share snow forecasts with friends via messaging apps and social media. The share feature generates a visual card with the 7-day snow forecast, resort info, and pow.fyi branding so recipients can see the forecast at a glance and follow the link for details.
+
+### Implementation
+- **Canvas-based share card** (`src/utils/shareCard.ts`): Renders a 600×420 branded image using the native Canvas API — no external dependencies. Includes resort name, region, elevation, 7-day snow bars with temperatures, date range, total snowfall, and pow.fyi URL watermark.
+- **ShareButton component** (`src/components/ShareButton.tsx`): Handles the full share flow:
+  1. Generates the share card image via Canvas
+  2. Tries the Web Share API with file support (mobile-native share sheets)
+  3. Falls back to copying the image to clipboard via `ClipboardItem`
+  4. Final fallback: copies the resort URL to clipboard
+  5. Shows a toast notification with the result
+- **ResortPage integration**: Share button added to header next to Refresh button, styled consistently with existing action buttons. Passes current resort data, elevation band, units, and 7-day forecast to the share card renderer.
+
+### Key files affected
+- `src/utils/shareCard.ts` (new)
+- `src/components/ShareButton.tsx` (new)
+- `src/pages/ResortPage.tsx`
+- `src/pages/ResortPage.css`
+- `src/utils/__tests__/shareCard.test.ts` (new)
+- `src/components/__tests__/ShareButton.test.tsx` (new)
+
+---
+
+## Share FAB Follow-up
+
+### What changed
+- Moved resort-page sharing into a layout-level FAB backed by `ShareContext`, so the share target follows the active resort, selected elevation band, and selected day without duplicating a page-header button.
+- Extended `ShareButton` with an icon-only FAB mode and a richer clipboard fallback that attempts to copy both the rendered image and the deep-linked resort URL before degrading to image-only or URL-only copy.
+- Updated shared test providers and layout/share button tests so app-level renders exercise the same share context wiring as production.
+- Added the PR screenshot workflow guard so forked pull requests still upload screenshot artifacts without failing when the token lacks permission to comment upstream.
+
+### Why
+- Keeps sharing prominent and consistent across resort pages while preserving existing deep-link share URLs.
+- Improves fallback sharing behavior in browsers that support multi-type clipboard writes and closes the provider/test gap called out in PR review.
+
+### Key files affected
+- `src/context/ShareContext.tsx`
+- `src/components/Layout.tsx`
+- `src/components/Layout.css`
+- `src/components/ShareButton.tsx`
+- `src/pages/ResortPage.tsx`
+- `src/test/test-utils.tsx`
+- `src/components/__tests__/Layout.test.tsx`
+- `src/components/__tests__/ShareButton.test.tsx`
+- `.github/workflows/pr-ci.yml`
