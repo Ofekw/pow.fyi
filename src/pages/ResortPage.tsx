@@ -159,6 +159,9 @@ export function ResortPage() {
   }, [shareCardData, selectedDayIdx, setShareData]);
 
   useEffect(() => {
+    // Include setShareData in deps to satisfy exhaustive-deps lint. The callback
+    // is memoized in ShareProvider, and this cleanup clears the global share FAB
+    // when the resort page unmounts.
     return () => setShareData(null);
   }, [setShareData]);
 

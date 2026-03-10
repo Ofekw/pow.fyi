@@ -176,8 +176,11 @@ describe('ShareButton', () => {
     await waitFor(() => {
       expect(screen.getByText('Copied!')).toBeInTheDocument();
     });
-    expect(screen.getByRole('status')).toHaveTextContent(/Screenshot.*copied/i);
+    expect(screen.getByRole('status')).toHaveTextContent('Screenshot and link copied!');
     expect(writeMock).toHaveBeenCalledTimes(1);
+    const clipboardItem = writeMock.mock.calls[0][0][0] as ClipboardItem;
+    expect(clipboardItem.types).toContain('image/png');
+    expect(clipboardItem.types).toContain('text/plain');
   });
 
   it('keeps a stable accessible name for icon-only share buttons', async () => {
@@ -186,7 +189,7 @@ describe('ShareButton', () => {
     const canShareMock = mock(() => false);
     setNavigator({ share: shareMock, canShare: canShareMock });
 
-    render(<ShareButton cardData={makeCardData()} className="fab fab--icon" />);
+    render(<ShareButton cardData={makeCardData()} className="fab fab--icon" iconOnly />);
 
     const btn = screen.getByRole('button', { name: /share forecast/i });
     expect(btn).not.toHaveTextContent('Share');

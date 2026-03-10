@@ -134,6 +134,7 @@ export function Layout() {
             cardData={cardData}
             selectedDayIdx={selectedDayIdx}
             className="fab fab--icon"
+            iconOnly
           />
         )}
 
