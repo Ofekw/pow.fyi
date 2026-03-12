@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, type Ref } from 'react';
 import { Snowflake, Star } from 'lucide-react';
 import { searchResorts, RESORTS, getResortBySlug } from '@/data/resorts';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -18,23 +18,15 @@ const BABKA_EYE_RIGHT_Y = 0.16;
 
 interface BabkaOverlayProps {
   onDismiss: () => void;
+  ref: Ref<HTMLDivElement>;
 }
 
-function BabkaOverlay({ onDismiss }: BabkaOverlayProps) {
+function BabkaOverlay({ onDismiss, ref }: BabkaOverlayProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const leftLineRef = useRef<SVGLineElement>(null);
   const rightLineRef = useRef<SVGLineElement>(null);
   const posRef = useRef({ x: 0, y: 0 });
   const velRef = useRef({ vx: 1.5, vy: 1.2 });
-
-  // Dismiss on Escape or Enter via document keydown — focus stays in search input when overlay appears
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.key === 'Enter') onDismiss();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onDismiss]);
 
   // Bounce animation via DOM refs — no React state updates on each frame to avoid full-page re-renders
   useEffect(() => {
@@ -104,12 +96,20 @@ function BabkaOverlay({ onDismiss }: BabkaOverlayProps) {
 
   return (
     <div
+      ref={ref}
       className="home__easter-egg home__easter-egg--babka"
       data-testid="babka-easter-egg"
       role="dialog"
       aria-modal="true"
       aria-label="Babka easter egg overlay"
+      tabIndex={0}
       onClick={onDismiss}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onDismiss();
+        }
+      }}
     >
       <svg className="home__babka-lasers" aria-hidden="true">
         <defs>
@@ -167,18 +167,27 @@ export function HomePage() {
   const isBabkaEasterEgg = query.toLowerCase() === 'babka';
   const filtered = useMemo(() => searchResorts(query), [query]);
 
-  // Handle Escape key to dismiss easter egg
+  // Easter eggs are mutually exclusive — only one can be active at a time — so easterEggRef
+  // is always attached to at most one dialog at a time.
+  const easterEggRef = useRef<HTMLDivElement>(null);
+
+  // Handle Escape key to dismiss all easter eggs
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isEasterEgg) {
-        setQuery('');
-      }
+      if (e.key === 'Escape') setQuery('');
     };
-    if (isEasterEgg) {
+    if (isEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg) {
       document.addEventListener('keydown', handleEscape);
       return () => document.removeEventListener('keydown', handleEscape);
     }
-  }, [isEasterEgg]);
+  }, [isEasterEgg, isMfjhEasterEgg, isBabkaEasterEgg]);
+
+  // Move focus to the active easter egg dialog on mount so keyboard users can interact with it
+  useEffect(() => {
+    if (isEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg) {
+      easterEggRef.current?.focus();
+    }
+  }, [isEasterEgg, isMfjhEasterEgg, isBabkaEasterEgg]);
 
   // MFJH easter egg: grow from 10vh to 100vh in 10% increments every 500ms,
   // then auto-dismiss after a 1s hold.
@@ -285,13 +294,20 @@ export function HomePage() {
       {/* Easter Egg: Show spinning image when user searches for "Ofek" */}
       {isEasterEgg && (
         <div
+          ref={easterEggRef}
           className="home__easter-egg"
           data-testid="easter-egg"
           role="dialog"
           aria-modal="true"
           aria-label="Easter egg overlay"
+          tabIndex={0}
           onClick={() => setQuery('')}
-          onKeyDown={(e) => e.key === 'Enter' && setQuery('')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setQuery('');
+            }
+          }}
         >
           <img
             src={ofekImage}
@@ -304,6 +320,7 @@ export function HomePage() {
       {/* Easter Egg: Expanding image when user searches for "mfjh" */}
       {isMfjhEasterEgg && (
         <div
+          ref={easterEggRef}
           className="home__easter-egg home__easter-egg--mfjh"
           data-testid="mfjh-easter-egg"
           role="dialog"
@@ -311,7 +328,12 @@ export function HomePage() {
           aria-label="MFJH easter egg overlay"
           tabIndex={0}
           onClick={() => setQuery('')}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setQuery('')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setQuery('');
+            }
+          }}
         >
           <img
             src={mfjhImage}
@@ -323,7 +345,7 @@ export function HomePage() {
       )}
 
       {/* Easter Egg: Bouncing babka dog with laser eyes when user searches for "babka" */}
-      {isBabkaEasterEgg && <BabkaOverlay onDismiss={babkaDismiss} />}
+      {isBabkaEasterEgg && <BabkaOverlay ref={easterEggRef} onDismiss={babkaDismiss} />}
     </div>
   );
 }
