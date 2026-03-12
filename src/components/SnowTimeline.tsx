@@ -83,9 +83,12 @@ export function SnowTimeline({
     });
 
     // For the max calculation, consider individual period values so bars scale correctly
-    const todayPeriodSnow = todayBar && forecastHourly
-      ? todayBar.periods.map((period) => period.snow)
-      : (todayBar ? [todayBar.snow] : []);
+    let todayPeriodSnow: number[] = [];
+    if (todayBar) {
+      todayPeriodSnow = forecastHourly
+        ? todayBar.periods.map((period) => period.snow)
+        : [todayBar.snow];
+    }
     const allSnow = [
       ...pastBars.map((b) => b.snow),
       ...todayPeriodSnow,

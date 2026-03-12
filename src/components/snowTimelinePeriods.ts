@@ -106,22 +106,28 @@ export function splitSnowAttributionPeriods(
   prevDate.setUTCDate(prevDate.getUTCDate() - 1);
   const prevDateStr = prevDate.toISOString().slice(0, 10);
 
-  const totals = Object.fromEntries(
-    getSnowAttributionPeriods(mode).map((period) => [period.key, 0]),
-  ) as Record<string, number>;
-
-  for (const h of hourly) {
-    const hourDate = h.time.slice(0, 10);
-    const hour = Number(h.time.slice(11, 13));
-    if (!Number.isFinite(hour) || hour < 0 || hour > 23) continue;
-
-    if (mode === 'calendar') {
+  if (mode === 'calendar') {
+    const totals = { morning: 0, day: 0, night: 0 };
+    for (const h of hourly) {
+      const hourDate = h.time.slice(0, 10);
+      const hour = Number(h.time.slice(11, 13));
+      if (!Number.isFinite(hour) || hour < 0 || hour > 23) continue;
       if (hourDate !== date) continue;
       if (hour < 8) totals.morning += h.snowfall;
       else if (hour < 18) totals.day += h.snowfall;
       else totals.night += h.snowfall;
-      continue;
     }
+    return getSnowAttributionPeriods(mode).map((period) => ({
+      ...period,
+      snowfall: totals[period.key as keyof typeof totals] ?? 0,
+    }));
+  }
+
+  const totals = { overnight: 0, daytime: 0 };
+  for (const h of hourly) {
+    const hourDate = h.time.slice(0, 10);
+    const hour = Number(h.time.slice(11, 13));
+    if (!Number.isFinite(hour) || hour < 0 || hour > 23) continue;
 
     if ((hourDate === prevDateStr && hour >= 18) || (hourDate === date && hour < 8)) {
       totals.overnight += h.snowfall;
@@ -134,6 +140,6 @@ export function splitSnowAttributionPeriods(
 
   return getSnowAttributionPeriods(mode).map((period) => ({
     ...period,
-    snowfall: totals[period.key] ?? 0,
+    snowfall: totals[period.key as keyof typeof totals] ?? 0,
   }));
 }

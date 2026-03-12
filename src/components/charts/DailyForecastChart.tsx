@@ -56,18 +56,20 @@ export function DailyForecastChart({
     // When hourly data is available, split each day into AM/PM/Overnight periods
     const hasPeriods = !!hourly;
     const periodDefs = getSnowAttributionPeriods(attributionMode);
-    const periodData = Object.fromEntries(
-      periodDefs.map((period) => [period.key, [] as number[]]),
-    ) as Record<string, number[]>;
+    const periodData = periodDefs.reduce<Record<string, number[]>>((acc, period) => {
+      acc[period.key] = [];
+      return acc;
+    }, {});
     let snowData: number[] = [];
 
     if (hasPeriods) {
       // Split all days at once to avoid redundant filtering
       const allPeriods = daily.map((d) => {
         const periods = splitSnowAttributionPeriods(d.date, hourly, attributionMode);
-        return Object.fromEntries(
-          periods.map((period) => [period.key, toDisplay(period.snowfall)]),
-        ) as Record<string, number>;
+        return periods.reduce<Record<string, number>>((acc, period) => {
+          acc[period.key] = toDisplay(period.snowfall);
+          return acc;
+        }, {});
       });
 
       for (const period of periodDefs) {
@@ -105,12 +107,13 @@ export function DailyForecastChart({
 
     if (hasPeriods) {
       periodDefs.forEach((period, index) => {
+        const periodColor = PERIOD_COLORS[period.key] ?? COLORS.snow;
         series.push(
-          makeBarSeries(`${period.label} (${precipLabel})`, periodData[period.key], PERIOD_COLORS[period.key], {
+          makeBarSeries(`${period.label} (${precipLabel})`, periodData[period.key] ?? [], periodColor, {
             yAxisIndex: 0,
             ...(index === 0 ? { barGap: '5%', barCategoryGap: '30%' } : {}),
             itemStyle: {
-              color: PERIOD_COLORS[period.key],
+              color: periodColor,
               borderRadius: [3, 3, 0, 0],
             },
           }),
@@ -132,9 +135,10 @@ export function DailyForecastChart({
     );
 
     // Map series names to period time-range descriptions for legend tooltips
-    const periodDescriptions = Object.fromEntries(
-      periodDefs.map((period) => [`${period.label} (${precipLabel})`, period.tooltip]),
-    ) as Record<string, string>;
+    const periodDescriptions = periodDefs.reduce<Record<string, string>>((acc, period) => {
+      acc[`${period.label} (${precipLabel})`] = period.tooltip;
+      return acc;
+    }, {});
 
     return {
       tooltip: makeTooltip(),
