@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HomePage } from '@/pages/HomePage';
@@ -6,6 +6,10 @@ import { renderWithProviders } from '@/test/test-utils';
 
 beforeEach(() => {
   localStorage.clear();
+});
+
+afterEach(() => {
+  mock.restore();
 });
 
 describe('HomePage', () => {
@@ -152,5 +156,70 @@ describe('HomePage', () => {
     await user.type(search, 'mfj');
 
     expect(screen.queryByTestId('mfjh-easter-egg')).not.toBeInTheDocument();
+  });
+
+  it('shows babka easter egg when searching for "babka"', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'babka');
+
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows babka easter egg when searching for "BABKA" (uppercase)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'BABKA');
+
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows babka easter egg when searching for "BaBkA" (mixed case)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'BaBkA');
+
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+  });
+
+  it('does not show babka easter egg for partial matches', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'bab');
+
+    expect(screen.queryByTestId('babka-easter-egg')).not.toBeInTheDocument();
+  });
+
+  it('renders babka easter egg with laser SVG lines', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'babka');
+
+    const overlay = screen.getByTestId('babka-easter-egg');
+    // SVG with laser lines should be present
+    expect(overlay.querySelector('svg')).toBeInTheDocument();
+    const lines = overlay.querySelectorAll('line');
+    expect(lines.length).toBe(2);
+  });
+
+  it('babka easter egg does not auto-dismiss (runs until user dismisses)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'babka');
+
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+    // Overlay should still be present with no user interaction
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
   });
 });

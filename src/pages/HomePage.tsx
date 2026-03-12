@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Snowflake, Star } from 'lucide-react';
 import { searchResorts, RESORTS, getResortBySlug } from '@/data/resorts';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -7,12 +7,161 @@ import { FavoriteCard } from '@/components/FavoriteCard';
 import { SearchDropdown } from '@/components/SearchDropdown';
 import './HomePage.css';
 
+const BABKA_SIZE = 200;
+const BABKA_EYE_LEFT_X = 0.33;
+const BABKA_EYE_LEFT_Y = 0.17;
+const BABKA_EYE_RIGHT_X = 0.55;
+const BABKA_EYE_RIGHT_Y = 0.16;
+
+interface BabkaOverlayProps {
+  onDismiss: () => void;
+}
+
+function BabkaOverlay({ onDismiss }: BabkaOverlayProps) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const leftLineRef = useRef<SVGLineElement>(null);
+  const rightLineRef = useRef<SVGLineElement>(null);
+  const posRef = useRef({ x: 0, y: 0 });
+  const velRef = useRef({ vx: 1.5, vy: 1.2 });
+
+  // Dismiss on Escape or Enter via document keydown — focus stays in search input when overlay appears
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter') onDismiss();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onDismiss]);
+
+  // Bounce animation via DOM refs — no React state updates on each frame to avoid full-page re-renders
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+
+    const startX = Math.random() * Math.max(0, window.innerWidth - BABKA_SIZE);
+    const startY = Math.random() * Math.max(0, window.innerHeight - BABKA_SIZE);
+    posRef.current = { x: startX, y: startY };
+    velRef.current = {
+      vx: (Math.random() > 0.5 ? 1 : -1) * 1.5,
+      vy: (Math.random() > 0.5 ? 1 : -1) * 1.2,
+    };
+
+    function updateDOM(x: number, y: number) {
+      if (imgRef.current) {
+        imgRef.current.style.left = `${x}px`;
+        imgRef.current.style.top = `${y}px`;
+      }
+      const leftEyeX = x + BABKA_EYE_LEFT_X * BABKA_SIZE;
+      const leftEyeY = y + BABKA_EYE_LEFT_Y * BABKA_SIZE;
+      const rightEyeX = x + BABKA_EYE_RIGHT_X * BABKA_SIZE;
+      const rightEyeY = y + BABKA_EYE_RIGHT_Y * BABKA_SIZE;
+      if (leftLineRef.current) {
+        leftLineRef.current.setAttribute('x1', String(leftEyeX));
+        leftLineRef.current.setAttribute('y1', String(leftEyeY));
+        leftLineRef.current.setAttribute('x2', '0');
+        leftLineRef.current.setAttribute('y2', String(leftEyeY + leftEyeX));
+      }
+      if (rightLineRef.current) {
+        rightLineRef.current.setAttribute('x1', String(rightEyeX));
+        rightLineRef.current.setAttribute('y1', String(rightEyeY));
+        rightLineRef.current.setAttribute('x2', String(window.innerWidth));
+        rightLineRef.current.setAttribute('y2', String(rightEyeY + (window.innerWidth - rightEyeX)));
+      }
+    }
+
+    // Set initial DOM position immediately so there is no one-frame flash at (0, 0)
+    updateDOM(startX, startY);
+
+    let rafId: number;
+    function tick() {
+      let { x, y } = posRef.current;
+      let { vx, vy } = velRef.current;
+
+      x += vx;
+      y += vy;
+
+      const maxX = Math.max(0, window.innerWidth - BABKA_SIZE);
+      const maxY = Math.max(0, window.innerHeight - BABKA_SIZE);
+
+      if (x <= 0) { x = 0; vx = Math.abs(vx); }
+      if (x >= maxX) { x = maxX; vx = -Math.abs(vx); }
+      if (y <= 0) { y = 0; vy = Math.abs(vy); }
+      if (y >= maxY) { y = maxY; vy = -Math.abs(vy); }
+
+      posRef.current = { x, y };
+      velRef.current = { vx, vy };
+      updateDOM(x, y);
+
+      rafId = requestAnimationFrame(tick);
+    }
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  return (
+    <div
+      className="home__easter-egg home__easter-egg--babka"
+      data-testid="babka-easter-egg"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Babka easter egg overlay"
+      onClick={onDismiss}
+    >
+      <svg className="home__babka-lasers" aria-hidden="true">
+        <defs>
+          <filter id="babka-laser-glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feColorMatrix in="blur" type="matrix"
+              values="1 0 0 0 0.5  0 0 0 0 0  0 0 0 0 0  0 0 0 2 0"
+              result="redBlur" />
+            <feMerge>
+              <feMergeNode in="redBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <line
+          ref={leftLineRef}
+          x1={0}
+          y1={0}
+          x2={0}
+          y2={0}
+          stroke="#ff1111"
+          strokeWidth="5"
+          filter="url(#babka-laser-glow)"
+          className="home__babka-laser"
+        />
+        <line
+          ref={rightLineRef}
+          x1={0}
+          y1={0}
+          x2={0}
+          y2={0}
+          stroke="#ff1111"
+          strokeWidth="5"
+          filter="url(#babka-laser-glow)"
+          className="home__babka-laser"
+        />
+      </svg>
+      <img
+        ref={imgRef}
+        src="https://github.com/user-attachments/assets/ff10b448-8e80-42f7-87a3-4354516bcf73"
+        alt="Babka easter egg"
+        className="home__babka-image"
+        style={{ left: '0px', top: '0px' }}
+      />
+    </div>
+  );
+}
+
 export function HomePage() {
   const [query, setQuery] = useState('');
   const { favorites, toggle, isFav } = useFavorites();
 
   const isEasterEgg = query.toLowerCase() === 'ofek';
   const isMfjhEasterEgg = query.toLowerCase() === 'mfjh';
+  const isBabkaEasterEgg = query.toLowerCase() === 'babka';
   const filtered = useMemo(() => searchResorts(query), [query]);
 
   // Handle Escape key to dismiss easter egg
@@ -59,6 +208,8 @@ export function HomePage() {
     }, 1000);
     return () => clearTimeout(timeout);
   }, [isMfjhEasterEgg, mfjhSize]);
+
+  const babkaDismiss = () => setQuery('');
 
   const favoriteResorts = useMemo(
     () =>
@@ -167,6 +318,9 @@ export function HomePage() {
           />
         </div>
       )}
+
+      {/* Easter Egg: Bouncing babka dog with laser eyes when user searches for "babka" */}
+      {isBabkaEasterEgg && <BabkaOverlay onDismiss={babkaDismiss} />}
     </div>
   );
 }

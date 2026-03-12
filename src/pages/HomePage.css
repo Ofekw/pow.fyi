@@ -115,6 +115,57 @@
   transition: height 0.4s ease-in-out;
 }
 
+/* Babka bouncing easter egg */
+.home__easter-egg--babka {
+  display: block; /* Override the default flex centering */
+}
+
+.home__babka-image {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+  filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.6));
+}
+
+.home__babka-lasers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  overflow: visible;
+}
+
+.home__babka-laser {
+  stroke-linecap: round;
+  animation: babkaLaserPulse 1s steps(1, end) infinite;
+}
+
+@keyframes babkaLaserPulse {
+  0%,
+  49.99% {
+    stroke-opacity: 1;
+    stroke-width: 6px;
+  }
+  50%,
+  100% {
+    stroke-opacity: 0;
+    stroke-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home__babka-laser {
+    animation: none;
+    stroke-opacity: 1;
+    stroke-width: 6px;
+  }
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
