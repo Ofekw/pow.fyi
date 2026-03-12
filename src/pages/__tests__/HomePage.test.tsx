@@ -113,4 +113,44 @@ describe('HomePage', () => {
 
     expect(screen.queryByTestId('easter-egg')).not.toBeInTheDocument();
   });
+
+  it('shows mfjh easter egg when searching for "mfjh"', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'mfjh');
+
+    expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows mfjh easter egg when searching for "MFJH" (uppercase)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'MFJH');
+
+    expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows mfjh easter egg when searching for "MfJh" (mixed case)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'MfJh');
+
+    expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
+  });
+
+  it('does not show mfjh easter egg for partial matches', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<HomePage />);
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'mfj');
+
+    expect(screen.queryByTestId('mfjh-easter-egg')).not.toBeInTheDocument();
+  });
 });

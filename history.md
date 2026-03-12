@@ -996,3 +996,18 @@ Users wanted to share snow forecasts with friends via messaging apps and social 
 - `src/components/__tests__/Layout.test.tsx`
 - `src/components/__tests__/ShareButton.test.tsx`
 - `.github/workflows/pr-ci.yml`
+
+---
+
+## MFJH Easter Egg
+
+### What changed
+Added a second easter egg triggered by searching "mfjh" (case-insensitive) in the home page search bar. Unlike the existing Ofek spinner, this easter egg shows an image that starts small (10vh) and expands by 10% of viewport height every 500ms until it fills the entire screen (100vh). After holding at full size for 1 second, the overlay auto-dismisses by clearing the search query and returning to the home page. Clicking the overlay also dismisses it early.
+
+### Why
+Requested feature (GitHub issue: "MFJH easter egg") to add a fun animated easter egg for the "mfjh" keyword with a grow-to-fullscreen sequence.
+
+### Key files affected
+- `src/pages/HomePage.tsx` — added `isMfjhEasterEgg` derived state, `mfjhSize` state, growth interval effect, auto-dismiss timeout effect, and MFJH overlay JSX
+- `src/pages/HomePage.css` — added `.home__easter-egg--mfjh` and `.home__easter-egg-image--mfjh` styles with smooth `height` transition
+- `src/pages/__tests__/HomePage.test.tsx` — added tests for case-insensitive mfjh detection and partial-match exclusion

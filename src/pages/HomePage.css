@@ -108,6 +108,13 @@
   animation: spin 3s linear infinite;
 }
 
+/* MFJH expanding easter egg */
+.home__easter-egg--mfjh .home__easter-egg-image--mfjh {
+  width: auto;
+  object-fit: contain;
+  transition: height 0.4s ease-in-out;
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
