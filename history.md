@@ -1011,3 +1011,18 @@ Requested feature (GitHub issue: "MFJH easter egg") to add a fun animated easter
 - `src/pages/HomePage.tsx` — added `isMfjhEasterEgg` derived state, `mfjhSize` state, growth interval effect, auto-dismiss timeout effect, and MFJH overlay JSX
 - `src/pages/HomePage.css` — added `.home__easter-egg--mfjh` and `.home__easter-egg-image--mfjh` styles with smooth `height` transition
 - `src/pages/__tests__/HomePage.test.tsx` — added tests for case-insensitive mfjh detection and partial-match exclusion
+
+---
+
+## Babka Easter Egg
+
+### What changed
+Added a third easter egg triggered by searching "babka" (case-insensitive) in the home page search bar. When triggered, a full-screen dark overlay displays the Babka dog image (a basset hound with glowing red eyes) that bounces slowly around the screen using a `requestAnimationFrame` animation loop. Two red laser beams shoot from the dog's eyes to the left and right edges of the screen, rendered as SVG lines with a red glow filter and a pulsing animation. The overlay auto-dismisses after 5 seconds. Clicking or pressing Escape/Enter also dismisses it early.
+
+### Why
+Requested feature (GitHub issue: "Babka Easter Egg") to add a bouncing laser-eyes easter egg for the "babka" keyword.
+
+### Key files affected
+- `src/pages/HomePage.tsx` — added `isBabkaEasterEgg` derived state, bounce position state + refs (`babkaPosRef`, `babkaVelRef`, `babkaStartRef`), `requestAnimationFrame` animation effect with 5s auto-dismiss, Escape key handler, eye coordinate calculations, and Babka overlay JSX with SVG laser lines
+- `src/pages/HomePage.css` — added `.home__easter-egg--babka`, `.home__babka-image`, `.home__babka-lasers`, `.home__babka-laser`, and `@keyframes babkaLaserPulse` styles
+- `src/pages/__tests__/HomePage.test.tsx` — added tests for case-insensitive babka detection, partial-match exclusion, and SVG laser line rendering

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Snowflake, Star } from 'lucide-react';
 import { searchResorts, RESORTS, getResortBySlug } from '@/data/resorts';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -7,12 +7,21 @@ import { FavoriteCard } from '@/components/FavoriteCard';
 import { SearchDropdown } from '@/components/SearchDropdown';
 import './HomePage.css';
 
+const BABKA_SIZE = 200;
+// Approximate relative eye positions within the babka image
+const BABKA_EYE_LEFT_X = 0.37;
+const BABKA_EYE_LEFT_Y = 0.21;
+const BABKA_EYE_RIGHT_X = 0.62;
+const BABKA_EYE_RIGHT_Y = 0.21;
+const BABKA_DURATION = 5000;
+
 export function HomePage() {
   const [query, setQuery] = useState('');
   const { favorites, toggle, isFav } = useFavorites();
 
   const isEasterEgg = query.toLowerCase() === 'ofek';
   const isMfjhEasterEgg = query.toLowerCase() === 'mfjh';
+  const isBabkaEasterEgg = query.toLowerCase() === 'babka';
   const filtered = useMemo(() => searchResorts(query), [query]);
 
   // Handle Escape key to dismiss easter egg
@@ -59,6 +68,72 @@ export function HomePage() {
     }, 1000);
     return () => clearTimeout(timeout);
   }, [isMfjhEasterEgg, mfjhSize]);
+
+  // Babka easter egg: bounce image around screen for 5s then auto-dismiss.
+  const [babkaPos, setBabkaPos] = useState({ x: 100, y: 100 });
+  const babkaPosRef = useRef({ x: 100, y: 100 });
+  const babkaVelRef = useRef({ vx: 1.5, vy: 1.2 });
+  const babkaStartRef = useRef(0);
+
+  useEffect(() => {
+    if (!isBabkaEasterEgg) return;
+
+    const startX = Math.random() * Math.max(0, window.innerWidth - BABKA_SIZE);
+    const startY = Math.random() * Math.max(0, window.innerHeight - BABKA_SIZE);
+    babkaPosRef.current = { x: startX, y: startY };
+    babkaVelRef.current = {
+      vx: (Math.random() > 0.5 ? 1 : -1) * 1.5,
+      vy: (Math.random() > 0.5 ? 1 : -1) * 1.2,
+    };
+    babkaStartRef.current = performance.now();
+    setBabkaPos({ x: startX, y: startY });
+
+    let rafId: number;
+    function tick(now: number) {
+      if (now - babkaStartRef.current >= BABKA_DURATION) {
+        setQuery('');
+        return;
+      }
+
+      let { x, y } = babkaPosRef.current;
+      let { vx, vy } = babkaVelRef.current;
+
+      x += vx;
+      y += vy;
+
+      const maxX = Math.max(0, window.innerWidth - BABKA_SIZE);
+      const maxY = Math.max(0, window.innerHeight - BABKA_SIZE);
+
+      if (x <= 0) { x = 0; vx = Math.abs(vx); }
+      if (x >= maxX) { x = maxX; vx = -Math.abs(vx); }
+      if (y <= 0) { y = 0; vy = Math.abs(vy); }
+      if (y >= maxY) { y = maxY; vy = -Math.abs(vy); }
+
+      babkaPosRef.current = { x, y };
+      babkaVelRef.current = { vx, vy };
+      setBabkaPos({ x, y });
+
+      rafId = requestAnimationFrame(tick);
+    }
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [isBabkaEasterEgg]);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isBabkaEasterEgg) setQuery('');
+    };
+    if (isBabkaEasterEgg) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isBabkaEasterEgg]);
+
+  const babkaLeftEyeX = babkaPos.x + BABKA_EYE_LEFT_X * BABKA_SIZE;
+  const babkaLeftEyeY = babkaPos.y + BABKA_EYE_LEFT_Y * BABKA_SIZE;
+  const babkaRightEyeX = babkaPos.x + BABKA_EYE_RIGHT_X * BABKA_SIZE;
+  const babkaRightEyeY = babkaPos.y + BABKA_EYE_RIGHT_Y * BABKA_SIZE;
 
   const favoriteResorts = useMemo(
     () =>
@@ -164,6 +239,63 @@ export function HomePage() {
             alt="MFJH easter egg"
             className="home__easter-egg-image--mfjh"
             style={{ height: `${mfjhSize}vh`, maxWidth: '100vw' }}
+          />
+        </div>
+      )}
+
+      {/* Easter Egg: Bouncing babka dog with laser eyes when user searches for "babka" */}
+      {isBabkaEasterEgg && (
+        <div
+          className="home__easter-egg home__easter-egg--babka"
+          data-testid="babka-easter-egg"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Babka easter egg overlay"
+          tabIndex={0}
+          onClick={() => setQuery('')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setQuery('')}
+        >
+          <svg
+            className="home__babka-lasers"
+            aria-hidden="true"
+          >
+            <defs>
+              <filter id="babka-laser-glow" x="-50%" y="-200%" width="200%" height="500%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            {/* Left eye laser shoots left */}
+            <line
+              x1={babkaLeftEyeX}
+              y1={babkaLeftEyeY}
+              x2={0}
+              y2={babkaLeftEyeY}
+              stroke="#ff0000"
+              strokeWidth="3"
+              filter="url(#babka-laser-glow)"
+              className="home__babka-laser"
+            />
+            {/* Right eye laser shoots right */}
+            <line
+              x1={babkaRightEyeX}
+              y1={babkaRightEyeY}
+              x2="100%"
+              y2={babkaRightEyeY}
+              stroke="#ff0000"
+              strokeWidth="3"
+              filter="url(#babka-laser-glow)"
+              className="home__babka-laser"
+            />
+          </svg>
+          <img
+            src="https://github.com/user-attachments/assets/ff10b448-8e80-42f7-87a3-4354516bcf73"
+            alt="Babka easter egg"
+            className="home__babka-image"
+            style={{ left: `${babkaPos.x}px`, top: `${babkaPos.y}px` }}
           />
         </div>
       )}
