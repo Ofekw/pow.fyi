@@ -9,10 +9,10 @@ import './HomePage.css';
 
 const BABKA_SIZE = 200;
 // Approximate relative eye positions within the babka image
-const BABKA_EYE_LEFT_X = 0.37;
-const BABKA_EYE_LEFT_Y = 0.21;
-const BABKA_EYE_RIGHT_X = 0.62;
-const BABKA_EYE_RIGHT_Y = 0.21;
+const BABKA_EYE_LEFT_X = 0.33;
+const BABKA_EYE_LEFT_Y = 0.17;
+const BABKA_EYE_RIGHT_X = 0.55;
+const BABKA_EYE_RIGHT_Y = 0.16;
 
 export function HomePage() {
   const [query, setQuery] = useState('');
@@ -126,6 +126,9 @@ export function HomePage() {
   const babkaLeftEyeY = babkaPos.y + BABKA_EYE_LEFT_Y * BABKA_SIZE;
   const babkaRightEyeX = babkaPos.x + BABKA_EYE_RIGHT_X * BABKA_SIZE;
   const babkaRightEyeY = babkaPos.y + BABKA_EYE_RIGHT_Y * BABKA_SIZE;
+  // 45° downward angle: y drop equals the horizontal distance to the viewport edge
+  const babkaLeftLaserY2 = babkaLeftEyeY + babkaLeftEyeX;
+  const babkaRightLaserY2 = babkaRightEyeY + (window.innerWidth - babkaRightEyeX);
 
   const favoriteResorts = useMemo(
     () =>
@@ -252,33 +255,36 @@ export function HomePage() {
             aria-hidden="true"
           >
             <defs>
-              <filter id="babka-laser-glow" x="-50%" y="-200%" width="200%" height="500%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+              <filter id="babka-laser-glow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+                <feColorMatrix in="blur" type="matrix"
+                  values="1 0 0 0 0.5  0 0 0 0 0  0 0 0 0 0  0 0 0 2 0"
+                  result="redBlur" />
                 <feMerge>
-                  <feMergeNode in="blur" />
+                  <feMergeNode in="redBlur" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
             </defs>
-            {/* Left eye laser shoots left */}
+            {/* Left eye laser: 45° down-left */}
             <line
               x1={babkaLeftEyeX}
               y1={babkaLeftEyeY}
               x2={0}
-              y2={babkaLeftEyeY}
-              stroke="#ff0000"
-              strokeWidth="3"
+              y2={babkaLeftLaserY2}
+              stroke="#ff1111"
+              strokeWidth="5"
               filter="url(#babka-laser-glow)"
               className="home__babka-laser"
             />
-            {/* Right eye laser shoots right */}
+            {/* Right eye laser: 45° down-right */}
             <line
               x1={babkaRightEyeX}
               y1={babkaRightEyeY}
-              x2="100%"
-              y2={babkaRightEyeY}
-              stroke="#ff0000"
-              strokeWidth="3"
+              x2={window.innerWidth}
+              y2={babkaRightLaserY2}
+              stroke="#ff1111"
+              strokeWidth="5"
               filter="url(#babka-laser-glow)"
               className="home__babka-laser"
             />
