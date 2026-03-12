@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, type Ref } from 'react';
+import { useState, useMemo, useEffect, useRef, forwardRef } from 'react';
 import { Snowflake, Star } from 'lucide-react';
 import { searchResorts, RESORTS, getResortBySlug } from '@/data/resorts';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -18,10 +18,9 @@ const BABKA_EYE_RIGHT_Y = 0.16;
 
 interface BabkaOverlayProps {
   onDismiss: () => void;
-  ref: Ref<HTMLDivElement>;
 }
 
-function BabkaOverlay({ onDismiss, ref }: BabkaOverlayProps) {
+const BabkaOverlay = forwardRef<HTMLDivElement, BabkaOverlayProps>(function BabkaOverlay({ onDismiss }, ref) {
   const imgRef = useRef<HTMLImageElement>(null);
   const leftLineRef = useRef<SVGLineElement>(null);
   const rightLineRef = useRef<SVGLineElement>(null);
@@ -156,7 +155,7 @@ function BabkaOverlay({ onDismiss, ref }: BabkaOverlayProps) {
       />
     </div>
   );
-}
+});
 
 export function HomePage() {
   const [query, setQuery] = useState('');
