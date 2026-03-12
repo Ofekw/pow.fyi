@@ -164,6 +164,7 @@ export function HomePage() {
   const isEasterEgg = query.toLowerCase() === 'ofek';
   const isMfjhEasterEgg = query.toLowerCase() === 'mfjh';
   const isBabkaEasterEgg = query.toLowerCase() === 'babka';
+  const isAnyEasterEgg = isEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg;
   const filtered = useMemo(() => searchResorts(query), [query]);
 
   // Easter eggs are mutually exclusive — only one can be active at a time — so easterEggRef
@@ -175,18 +176,18 @@ export function HomePage() {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setQuery('');
     };
-    if (isEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg) {
+    if (isAnyEasterEgg) {
       document.addEventListener('keydown', handleEscape);
       return () => document.removeEventListener('keydown', handleEscape);
     }
-  }, [isEasterEgg, isMfjhEasterEgg, isBabkaEasterEgg]);
+  }, [isAnyEasterEgg]);
 
   // Move focus to the active easter egg dialog on mount so keyboard users can interact with it
   useEffect(() => {
-    if (isEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg) {
+    if (isAnyEasterEgg) {
       easterEggRef.current?.focus();
     }
-  }, [isEasterEgg, isMfjhEasterEgg, isBabkaEasterEgg]);
+  }, [isAnyEasterEgg]);
 
   // MFJH easter egg: grow from 10vh to 100vh in 10% increments every 500ms,
   // then auto-dismiss after a 1s hold.
