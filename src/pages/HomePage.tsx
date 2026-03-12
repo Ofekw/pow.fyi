@@ -12,7 +12,6 @@ const BABKA_EYE_LEFT_X = 0.33;
 const BABKA_EYE_LEFT_Y = 0.17;
 const BABKA_EYE_RIGHT_X = 0.55;
 const BABKA_EYE_RIGHT_Y = 0.16;
-export const BABKA_DURATION = 5000;
 
 interface BabkaOverlayProps {
   onDismiss: () => void;
@@ -209,13 +208,6 @@ export function HomePage() {
     }, 1000);
     return () => clearTimeout(timeout);
   }, [isMfjhEasterEgg, mfjhSize]);
-
-  // Babka easter egg: auto-dismiss after BABKA_DURATION ms
-  useEffect(() => {
-    if (!isBabkaEasterEgg) return;
-    const timeout = setTimeout(() => setQuery(''), BABKA_DURATION);
-    return () => clearTimeout(timeout);
-  }, [isBabkaEasterEgg]);
 
   const babkaDismiss = () => setQuery('');
 

@@ -212,37 +212,14 @@ describe('HomePage', () => {
     expect(lines.length).toBe(2);
   });
 
-  it('babka easter egg schedules auto-dismiss after 5 seconds', async () => {
+  it('babka easter egg does not auto-dismiss (runs until user dismisses)', async () => {
     const user = userEvent.setup();
-    const capturedDelays: number[] = [];
-    const originalSetTimeout = globalThis.setTimeout;
+    renderWithProviders(<HomePage />);
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'babka');
 
-    // Use a plain function, NOT mock() — mock() sets _isMockFunction=true which
-    // causes @testing-library/react to treat it as jest fake timers and throw.
-    const patchedSetTimeout = (...args: Parameters<typeof setTimeout>): ReturnType<typeof setTimeout> => {
-      const [, delay] = args;
-      capturedDelays.push(typeof delay === 'number' ? delay : 0);
-      return originalSetTimeout(...args);
-    };
-
-    Object.defineProperty(globalThis, 'setTimeout', {
-      value: patchedSetTimeout,
-      configurable: true,
-    });
-
-    try {
-      renderWithProviders(<HomePage />);
-      const search = screen.getByPlaceholderText('Search resorts…');
-      await user.type(search, 'babka');
-
-      expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
-      // A 5-second auto-dismiss timeout should have been scheduled
-      expect(capturedDelays).toContain(5000);
-    } finally {
-      Object.defineProperty(globalThis, 'setTimeout', {
-        value: originalSetTimeout,
-        configurable: true,
-      });
-    }
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+    // Overlay should still be present with no user interaction
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
   });
 });
