@@ -87,6 +87,9 @@ export function ResortPage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const prevFetchedAtRef = useRef<string | undefined>(undefined);
   const attributionInfoRef = useRef<HTMLDivElement>(null);
+  const attributionInfoButtonRef = useRef<HTMLButtonElement>(null);
+  const attributionPopoverRef = useRef<HTMLDivElement>(null);
+  const wasAttributionInfoOpenRef = useRef(false);
   const attributionPopoverId = useId();
 
   // Track when forecast data arrives (keyed on fetchedAt to avoid re-runs)
@@ -102,30 +105,46 @@ export function ResortPage() {
     refetch();
   }, [refetch]);
 
+  const handleAttributionInfoClickOutside = useCallback((event: MouseEvent) => {
+    if (
+      attributionInfoRef.current
+      && !attributionInfoRef.current.contains(event.target as Node)
+    ) {
+      setIsAttributionInfoOpen(false);
+    }
+  }, []);
+
+  const handleAttributionInfoKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      setIsAttributionInfoOpen(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAttributionInfoOpen) return;
 
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        attributionInfoRef.current
-        && !attributionInfoRef.current.contains(event.target as Node)
-      ) {
-        setIsAttributionInfoOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsAttributionInfoOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleAttributionInfoClickOutside);
+    document.addEventListener('keydown', handleAttributionInfoKeyDown);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleAttributionInfoClickOutside);
+      document.removeEventListener('keydown', handleAttributionInfoKeyDown);
+    };
+  }, [handleAttributionInfoClickOutside, handleAttributionInfoKeyDown, isAttributionInfoOpen]);
+
+  useEffect(() => {
+    let focusTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    if (isAttributionInfoOpen) {
+      focusTimeout = setTimeout(() => attributionPopoverRef.current?.focus(), 0);
+    } else if (wasAttributionInfoOpenRef.current) {
+      attributionInfoButtonRef.current?.focus();
+    }
+
+    wasAttributionInfoOpenRef.current = isAttributionInfoOpen;
+
+    return () => {
+      if (focusTimeout) clearTimeout(focusTimeout);
     };
   }, [isAttributionInfoOpen]);
 
@@ -340,6 +359,7 @@ export function ResortPage() {
               <button
                 type="button"
                 className="resort-page__attribution-info"
+                ref={attributionInfoButtonRef}
                 aria-label="Snow attribution time ranges"
                 aria-expanded={isAttributionInfoOpen}
                 aria-controls={attributionPopoverId}
@@ -352,7 +372,9 @@ export function ResortPage() {
                 <div
                   id={attributionPopoverId}
                   className="resort-page__attribution-popover"
+                  ref={attributionPopoverRef}
                   role="dialog"
+                  tabIndex={-1}
                   aria-label="Snow attribution time ranges"
                 >
                   {SNOW_ATTRIBUTION_POPOVER_CONTENT.map((section) => (

@@ -233,12 +233,14 @@ describe('ResortPage', () => {
     expect(infoButton).toHaveAttribute('aria-expanded', 'true');
     const dialog = screen.getByRole('dialog', { name: 'Snow attribution time ranges' });
     expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveFocus();
     expect(within(dialog).getByText('Calendar day')).toBeInTheDocument();
     expect(within(dialog).getByText('Morning: 12 am–8 am')).toBeInTheDocument();
     expect(within(dialog).getByText('Overnight: 6 pm previous day–8 am today')).toBeInTheDocument();
 
     await user.keyboard('{Escape}');
     expect(infoButton).toHaveAttribute('aria-expanded', 'false');
+    expect(infoButton).toHaveFocus();
     expect(screen.queryByRole('dialog', { name: 'Snow attribution time ranges' })).not.toBeInTheDocument();
   });
 
