@@ -27,6 +27,7 @@ import type { ElevationBand, BandForecast, DailyMetrics } from '@/types';
 import type { ShareCardData } from '@/utils/shareCard';
 import {
   getAttributedSnowfallTotal,
+  getSnowAttributionWindowHours,
   type SnowAttributionMode,
 } from '@/components/snowTimelinePeriods';
 import './ResortPage.css';
@@ -206,6 +207,10 @@ export function ResortPage() {
     if (!bandData || !selectedDay) return [];
     return bandData.hourly.filter((h) => h.time.startsWith(selectedDay.date));
   }, [bandData, selectedDay]);
+  const selectedDaySnowHourly = useMemo(() => {
+    if (!bandData || !selectedDay) return [];
+    return getSnowAttributionWindowHours(selectedDay.date, bandData.hourly, snowAttributionMode);
+  }, [bandData, selectedDay, snowAttributionMode]);
 
   // Compute snowpack depth — max snow_depth across ALL bands for today.
   // snow_depth is a grid-cell value so we take the max across bands to match
@@ -236,6 +241,7 @@ export function ResortPage() {
         ? {
             resort,
             daily: bandData.daily,
+            displayedDailySnowfall,
             band,
             elevation: bandData.elevation,
             weekTotalSnow,
@@ -244,7 +250,7 @@ export function ResortPage() {
             elevUnit: elev,
           }
         : null,
-    [bandData, resort, band, weekTotalSnow, snow, temp, elev],
+    [bandData, resort, displayedDailySnowfall, band, weekTotalSnow, snow, temp, elev],
   );
 
   useEffect(() => {
@@ -533,9 +539,9 @@ export function ResortPage() {
             </div>
 
             {/* Hourly snow breakdown for selected day */}
-            {selectedDayHourly.length > 0 && selectedDay && (
+            {selectedDaySnowHourly.length > 0 && selectedDay && (
               <HourlySnowChart
-                hourly={selectedDayHourly}
+                hourly={selectedDaySnowHourly}
                 dayLabel={selectedDayLabel}
                 snowfallSum={selectedDaySnowfall}
               />

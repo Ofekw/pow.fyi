@@ -1,6 +1,63 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { renderShareCard, shareCardToBlob } from '@/utils/shareCard';
 import type { ShareCardData } from '@/utils/shareCard';
+
+let fillTextCalls: string[] = [];
+const originalCreateElement = document.createElement.bind(document);
+
+const mockContext = {
+  scale() {},
+  beginPath() {},
+  moveTo() {},
+  lineTo() {},
+  arcTo() {},
+  closePath() {},
+  fill() {},
+  stroke() {},
+  createLinearGradient() {
+    return { addColorStop() {} };
+  },
+  measureText(text: string) {
+    return { width: text.length * 6 };
+  },
+  fillText(text: string) {
+    fillTextCalls.push(text);
+  },
+  fillStyle: '',
+  strokeStyle: '',
+  lineWidth: 1,
+  font: '',
+  textBaseline: 'top',
+  textAlign: 'left',
+} as unknown as CanvasRenderingContext2D;
+
+beforeEach(() => {
+  fillTextCalls = [];
+  Object.defineProperty(document, 'createElement', {
+    configurable: true,
+    value: (tagName: string) => {
+      const element = originalCreateElement(tagName);
+      if (tagName === 'canvas') {
+        Object.defineProperty(element, 'getContext', {
+          configurable: true,
+          value: () => mockContext,
+        });
+        Object.defineProperty(element, 'toBlob', {
+          configurable: true,
+          value: (callback: BlobCallback) => callback(new Blob(['png'], { type: 'image/png' })),
+        });
+      }
+      return element;
+    },
+  });
+});
+
+afterEach(() => {
+  Object.defineProperty(document, 'createElement', {
+    configurable: true,
+    value: originalCreateElement,
+  });
+});
 
 function makeShareData(overrides?: Partial<ShareCardData>): ShareCardData {
   return {
@@ -94,6 +151,7 @@ describe('renderShareCard', () => {
     const canvas = renderShareCard(data);
     expect(canvas).toBeInstanceOf(HTMLCanvasElement);
   });
+
 });
 
 describe('shareCardToBlob', () => {

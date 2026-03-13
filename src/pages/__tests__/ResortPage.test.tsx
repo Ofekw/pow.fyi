@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test';
-import { screen, within } from '@testing-library/react';
+import { screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { UnitsProvider } from '@/context/UnitsContext';
 import { TimezoneProvider } from '@/context/TimezoneContext';
+import { ShareProvider, useShare } from '@/context/ShareContext';
 import { render } from '@testing-library/react';
 import type { BandForecast } from '@/types';
 
@@ -145,6 +146,26 @@ function makeBandForecast(band: 'base' | 'mid' | 'top', elevation: number): Band
   };
 }
 
+const mockForecast = {
+  resort: {
+    slug: 'vail-co',
+    name: 'Vail',
+    region: 'Colorado',
+    country: 'US',
+    lat: 39.6403,
+    lon: -106.3742,
+    elevation: { base: 2475, mid: 3050, top: 3527 },
+    verticalDrop: 1052,
+    lifts: 31,
+    acres: 5317,
+    website: 'https://www.vail.com',
+  },
+  fetchedAt: '2025-01-15T00:00:00.000Z',
+  base: makeBandForecast('base', 2475),
+  mid: makeBandForecast('mid', 3050),
+  top: makeBandForecast('top', 3527),
+};
+
 // Mock modules before importing ResortPage
 mock.module('@/data/openmeteo', () => ({
   fetchForecast: mock(() =>
@@ -160,25 +181,7 @@ mock.module('@/data/openmeteo', () => ({
 
 mock.module('@/hooks/useWeather', () => ({
   useForecast: mock(() => ({
-    forecast: {
-      resort: {
-        slug: 'vail-co',
-        name: 'Vail',
-        region: 'Colorado',
-        country: 'US',
-        lat: 39.6403,
-        lon: -106.3742,
-        elevation: { base: 2475, mid: 3050, top: 3527 },
-        verticalDrop: 1052,
-        lifts: 31,
-        acres: 5317,
-        website: 'https://www.vail.com',
-      },
-      fetchedAt: '2025-01-15T00:00:00.000Z',
-      base: makeBandForecast('base', 2475),
-      mid: makeBandForecast('mid', 3050),
-      top: makeBandForecast('top', 3527),
-    },
+    forecast: mockForecast,
     loading: false,
     error: null,
     refetch: mock(() => {}),
@@ -199,8 +202,16 @@ mock.module('@/components/charts/HourlyDetailChart', () => ({
 }));
 
 mock.module('@/components/charts/HourlySnowChart', () => ({
-  HourlySnowChart: ({ snowfallSum }: { snowfallSum?: number }) => (
-    <div data-testid="hourly-snow-chart">Hourly snow total: {snowfallSum ?? 0}</div>
+  HourlySnowChart: ({
+    hourly,
+    snowfallSum,
+  }: {
+    hourly: Array<{ time: string }>;
+    snowfallSum?: number;
+  }) => (
+    <div data-testid="hourly-snow-chart">
+      Hourly snow total: {snowfallSum ?? 0}; Hours: {hourly.map((entry) => entry.time).join(',')}
+    </div>
   ),
 }));
 
@@ -231,11 +242,35 @@ function renderResortPage(slug = 'vail-co') {
   return render(
     <UnitsProvider>
       <TimezoneProvider>
-        <MemoryRouter initialEntries={[`/resort/${slug}`]}>
-          <Routes>
-            <Route path="/resort/:slug" element={<ResortPage />} />
-          </Routes>
-        </MemoryRouter>
+        <ShareProvider>
+          <MemoryRouter initialEntries={[`/resort/${slug}`]}>
+            <Routes>
+              <Route path="/resort/:slug" element={<ResortPage />} />
+            </Routes>
+          </MemoryRouter>
+        </ShareProvider>
+      </TimezoneProvider>
+    </UnitsProvider>,
+  );
+}
+
+function ShareDataProbe() {
+  const { cardData } = useShare();
+  return <pre data-testid="share-card-data">{JSON.stringify(cardData)}</pre>;
+}
+
+function renderResortPageWithShareData(slug = 'vail-co') {
+  return render(
+    <UnitsProvider>
+      <TimezoneProvider>
+        <ShareProvider>
+          <MemoryRouter initialEntries={[`/resort/${slug}`]}>
+            <Routes>
+              <Route path="/resort/:slug" element={<ResortPage />} />
+            </Routes>
+          </MemoryRouter>
+          <ShareDataProbe />
+        </ShareProvider>
       </TimezoneProvider>
     </UnitsProvider>,
   );
@@ -328,6 +363,9 @@ describe('ResortPage', () => {
     expect(within(selectedDayCard).getByText('5.1"')).toBeInTheDocument();
     expect(screen.getByText('7.1" next 7 days')).toBeInTheDocument();
     expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent('Hourly snow total: 13');
+    expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent(
+      'Hours: 2025-01-15T02:00:00,2025-01-15T09:00:00,2025-01-15T20:00:00',
+    );
     expect(within(conditionsTable).getByText('3.1"')).toBeInTheDocument();
     expect(within(conditionsTable).getByText('5.1"')).toBeInTheDocument();
     expect(within(conditionsTable).getByText('7.1"')).toBeInTheDocument();
@@ -339,10 +377,32 @@ describe('ResortPage', () => {
     expect(within(screen.getByRole('button', { pressed: true })).getByText('5.9"')).toBeInTheDocument();
     expect(screen.getByText('8.3" next 7 days')).toBeInTheDocument();
     expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent('Hourly snow total: 15');
+    expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent(
+      'Hours: 2025-01-14T19:00:00,2025-01-15T02:00:00,2025-01-15T09:00:00',
+    );
     expect(within(updatedConditionsTable).getByText('3.5"')).toBeInTheDocument();
     expect(within(updatedConditionsTable).getByText('5.9"')).toBeInTheDocument();
     expect(within(updatedConditionsTable).getByText('7.9"')).toBeInTheDocument();
     expect(screen.getAllByText('5.9"')).toHaveLength(2);
+  });
+
+  it('stores attribution-aware daily snowfall in the shared card data', async () => {
+    const user = userEvent.setup();
+    renderResortPageWithShareData();
+
+    await waitFor(() => {
+      const cardData = JSON.parse(screen.getByTestId('share-card-data').textContent ?? 'null');
+      expect(cardData.displayedDailySnowfall).toEqual([13, 5]);
+      expect(cardData.weekTotalSnow).toBe(18);
+    });
+
+    await user.click(screen.getByRole('radio', { name: 'Ski day' }));
+
+    await waitFor(() => {
+      const cardData = JSON.parse(screen.getByTestId('share-card-data').textContent ?? 'null');
+      expect(cardData.displayedDailySnowfall).toEqual([15, 6]);
+      expect(cardData.weekTotalSnow).toBe(21);
+    });
   });
 
   it('opens and closes the attribution info popover from the info icon', async () => {

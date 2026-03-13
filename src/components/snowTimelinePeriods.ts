@@ -144,6 +144,26 @@ export function splitSnowAttributionPeriods(
   }));
 }
 
+export function getSnowAttributionWindowHours(
+  date: string,
+  hourly: HourlyMetrics[],
+  mode: SnowAttributionMode,
+): HourlyMetrics[] {
+  const prevDate = new Date(`${date}T00:00:00Z`);
+  prevDate.setUTCDate(prevDate.getUTCDate() - 1);
+  const prevDateStr = prevDate.toISOString().slice(0, 10);
+
+  return hourly.filter((h) => {
+    const hourDate = h.time.slice(0, 10);
+    const hour = Number(h.time.slice(11, 13));
+    if (!Number.isFinite(hour) || hour < 0 || hour > 23) return false;
+
+    if (mode === 'calendar') return hourDate === date;
+
+    return (hourDate === prevDateStr && hour >= 18) || (hourDate === date && hour < 18);
+  });
+}
+
 export function getAttributedSnowfallTotal(
   date: string,
   dailySnowfallSum: number,

@@ -26,6 +26,7 @@ const RADIUS = 12;
 export interface ShareCardData {
   resort: Resort;
   daily: DailyMetrics[];
+  displayedDailySnowfall?: number[];
   band: ElevationBand;
   elevation: number;
   weekTotalSnow: number;
@@ -80,7 +81,17 @@ function shortDay(dateStr: string): string {
 /* ── Main render function ────────────────────────── */
 
 export function renderShareCard(data: ShareCardData): HTMLCanvasElement {
-  const { resort, daily, band, elevation, weekTotalSnow, snowUnit, tempUnit, elevUnit } = data;
+  const {
+    resort,
+    daily,
+    displayedDailySnowfall,
+    band,
+    elevation,
+    weekTotalSnow,
+    snowUnit,
+    tempUnit,
+    elevUnit,
+  } = data;
   const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 2;
 
   const canvas = document.createElement('canvas');
@@ -171,13 +182,13 @@ export function renderShareCard(data: ShareCardData): HTMLCanvasElement {
   const barW = numDays > 1 ? (barAreaW - barGap * (numDays - 1)) / numDays : barAreaW;
 
   // Find max snow for scaling (guard against empty array)
-  const snowValues = daily.slice(0, 7).map((d) => d.snowfallSum);
+  const snowValues = daily.slice(0, 7).map((d, i) => displayedDailySnowfall?.[i] ?? d.snowfallSum);
   const maxSnow = snowValues.length > 0 ? Math.max(...snowValues, 0.1) : 0.1;
 
   for (let i = 0; i < numDays; i++) {
     const d = daily[i]!;
     const x = PAD + i * (barW + barGap);
-    const snowVal = d.snowfallSum;
+    const snowVal = displayedDailySnowfall?.[i] ?? d.snowfallSum;
     const barH = Math.max((snowVal / maxSnow) * (barAreaH - 52), snowVal > 0 ? 4 : 0);
 
     // Snow value label above bar
