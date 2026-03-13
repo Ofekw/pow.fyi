@@ -14,6 +14,7 @@ import { useTimezone } from '@/context/TimezoneContext';
 import { fmtSnow, cmToIn } from '@/utils/weather';
 import {
   getSnowAttributionPeriods,
+  getAttributedSnowfallTotal,
   splitSnowAttributionPeriods,
   type SnowAttributionMode,
 } from './snowTimelinePeriods';
@@ -66,9 +67,7 @@ export function SnowTimeline({
 
     const buildForecastBar = (date: string, dailySnowfallSum: number) => {
       const periods = toDisplayPeriods(date);
-      const raw = periods.length > 0
-        ? periods.reduce((sum, period) => sum + period.snowfall, 0)
-        : dailySnowfallSum;
+      const raw = getAttributedSnowfallTotal(date, dailySnowfallSum, forecastHourly, attributionMode);
 
       return {
         date,

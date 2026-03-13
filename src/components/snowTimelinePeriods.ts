@@ -143,3 +143,15 @@ export function splitSnowAttributionPeriods(
     snowfall: totals[period.key as keyof typeof totals] ?? 0,
   }));
 }
+
+export function getAttributedSnowfallTotal(
+  date: string,
+  dailySnowfallSum: number,
+  hourly: HourlyMetrics[] | undefined,
+  mode: SnowAttributionMode,
+): number {
+  if (!hourly || hourly.length === 0) return dailySnowfallSum;
+
+  const periods = splitSnowAttributionPeriods(date, hourly, mode);
+  return periods.reduce((sum, period) => sum + period.snowfall, 0);
+}

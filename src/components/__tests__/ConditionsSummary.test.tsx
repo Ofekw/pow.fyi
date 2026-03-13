@@ -3,9 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { UnitsProvider } from '@/context/UnitsContext';
 import { TimezoneProvider } from '@/context/TimezoneContext';
 import { ConditionsSummary } from '@/components/ConditionsSummary';
+import type { SnowAttributionMode } from '@/components/snowTimelinePeriods';
 import type { BandForecast, DailyMetrics, HourlyMetrics } from '@/types';
 
-function makeHourly(time: string): HourlyMetrics {
+function makeHourly(time: string, snowfall = 2): HourlyMetrics {
   return {
     time,
     temperature: -5,
@@ -13,7 +14,7 @@ function makeHourly(time: string): HourlyMetrics {
     relativeHumidity: 80,
     precipitation: 0,
     rain: 0,
-    snowfall: 2,
+    snowfall,
     precipitationProbability: 60,
     weatherCode: 73,
     windSpeed: 15,
@@ -46,9 +47,12 @@ function makeBand(band: 'base' | 'mid' | 'top', elevation: number): BandForecast
     band,
     elevation,
     hourly: [
-      makeHourly('2025-01-15T08:00:00'),
-      makeHourly('2025-01-15T09:00:00'),
-      makeHourly('2025-01-15T10:00:00'),
+      makeHourly('2025-01-14T19:00:00', 1),
+      makeHourly('2025-01-15T02:00:00', 2),
+      makeHourly('2025-01-15T10:00:00', 3),
+      makeHourly('2025-01-15T20:00:00', 4),
+      makeHourly('2025-01-16T03:00:00', 2),
+      makeHourly('2025-01-16T10:00:00', 4),
     ],
     daily: [makeDaily('2025-01-15', 5), makeDaily('2025-01-16', 10)],
   };
@@ -62,7 +66,7 @@ const bands = {
 
 const elevations = { base: 2475, mid: 3050, top: 3527 };
 
-function renderSummary(selectedDayIdx = 0) {
+function renderSummary(selectedDayIdx = 0, attributionMode?: SnowAttributionMode) {
   return render(
     <UnitsProvider>
       <TimezoneProvider>
@@ -70,6 +74,7 @@ function renderSummary(selectedDayIdx = 0) {
           bands={bands}
           selectedDayIdx={selectedDayIdx}
           elevations={elevations}
+          attributionMode={attributionMode}
         />
       </TimezoneProvider>
     </UnitsProvider>,
@@ -113,8 +118,8 @@ describe('ConditionsSummary', () => {
 
   it('renders snow values for all bands', () => {
     renderSummary();
-    // All bands have 5cm snow → 2.0" in imperial
-    const snowCells = screen.getAllByText('2.0"');
+    // Calendar attribution sums 2am + 10am + 8pm hourly snowfall = 9cm → 3.5"
+    const snowCells = screen.getAllByText('3.5"');
     expect(snowCells.length).toBe(3);
   });
 
@@ -145,8 +150,15 @@ describe('ConditionsSummary', () => {
 
   it('uses second day when selectedDayIdx is 1', () => {
     renderSummary(1);
-    // Second day has 10cm snow → 3.9" in imperial
-    const snowCells = screen.getAllByText('3.9"');
+    // Calendar attribution sums 2am + 10am hourly snowfall = 6cm → 2.4"
+    const snowCells = screen.getAllByText('2.4"');
+    expect(snowCells.length).toBe(3);
+  });
+
+  it('uses attribution-aware totals in ski day mode', () => {
+    renderSummary(0, 'ski');
+    // Ski attribution sums previous evening + overnight + daytime = 6cm → 2.4"
+    const snowCells = screen.getAllByText('2.4"');
     expect(snowCells.length).toBe(3);
   });
 });

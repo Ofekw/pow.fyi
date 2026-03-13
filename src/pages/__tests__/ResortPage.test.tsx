@@ -9,18 +9,99 @@ import { render } from '@testing-library/react';
 import type { BandForecast } from '@/types';
 
 function makeBandForecast(band: 'base' | 'mid' | 'top', elevation: number): BandForecast {
+  const snowfallByBand = {
+    base: { prevEvening: 2, overnight: 3, day: 4, nextEvening: 1, dayTwoOvernight: 1, dayTwoDay: 2 },
+    mid: { prevEvening: 3, overnight: 5, day: 7, nextEvening: 1, dayTwoOvernight: 2, dayTwoDay: 3 },
+    top: { prevEvening: 4, overnight: 7, day: 9, nextEvening: 2, dayTwoOvernight: 3, dayTwoDay: 4 },
+  }[band];
+
   return {
     band,
     elevation,
     hourly: [
       {
-        time: '2025-01-15T12:00:00',
+        time: '2025-01-14T19:00:00',
         temperature: -5,
         apparentTemperature: -10,
         relativeHumidity: 80,
         precipitation: 0,
         rain: 0,
-        snowfall: 2,
+        snowfall: snowfallByBand.prevEvening,
+        precipitationProbability: 60,
+        weatherCode: 73,
+        windSpeed: 15,
+        windDirection: 270,
+        windGusts: 25,
+        freezingLevelHeight: 2500,
+      },
+      {
+        time: '2025-01-15T02:00:00',
+        temperature: -5,
+        apparentTemperature: -10,
+        relativeHumidity: 80,
+        precipitation: 0,
+        rain: 0,
+        snowfall: snowfallByBand.overnight,
+        precipitationProbability: 60,
+        weatherCode: 73,
+        windSpeed: 15,
+        windDirection: 270,
+        windGusts: 25,
+        freezingLevelHeight: 2500,
+      },
+      {
+        time: '2025-01-15T09:00:00',
+        temperature: -5,
+        apparentTemperature: -10,
+        relativeHumidity: 80,
+        precipitation: 0,
+        rain: 0,
+        snowfall: snowfallByBand.day,
+        precipitationProbability: 60,
+        weatherCode: 73,
+        windSpeed: 15,
+        windDirection: 270,
+        windGusts: 25,
+        freezingLevelHeight: 2500,
+      },
+      {
+        time: '2025-01-15T20:00:00',
+        temperature: -5,
+        apparentTemperature: -10,
+        relativeHumidity: 80,
+        precipitation: 0,
+        rain: 0,
+        snowfall: snowfallByBand.nextEvening,
+        precipitationProbability: 60,
+        weatherCode: 73,
+        windSpeed: 15,
+        windDirection: 270,
+        windGusts: 25,
+        freezingLevelHeight: 2500,
+      },
+      {
+        time: '2025-01-16T03:00:00',
+        temperature: -5,
+        apparentTemperature: -10,
+        relativeHumidity: 80,
+        precipitation: 0,
+        rain: 0,
+        snowfall: snowfallByBand.dayTwoOvernight,
+        precipitationProbability: 60,
+        weatherCode: 73,
+        windSpeed: 15,
+        windDirection: 270,
+        windGusts: 25,
+        freezingLevelHeight: 2500,
+      },
+      {
+        time: '2025-01-16T10:00:00',
+        temperature: -5,
+        apparentTemperature: -10,
+        relativeHumidity: 80,
+        precipitation: 0,
+        rain: 0,
+        snowfall: snowfallByBand.dayTwoDay,
         precipitationProbability: 60,
         weatherCode: 73,
         windSpeed: 15,
@@ -41,6 +122,21 @@ function makeBandForecast(band: 'base' | 'mid' | 'top', elevation: number): Band
         precipitationSum: 5,
         rainSum: 0,
         snowfallSum: 5,
+        precipitationProbabilityMax: 80,
+        windSpeedMax: 20,
+        windGustsMax: 35,
+      },
+      {
+        date: '2025-01-16',
+        weatherCode: 73,
+        temperatureMax: -2,
+        temperatureMin: -10,
+        apparentTemperatureMax: -5,
+        apparentTemperatureMin: -15,
+        uvIndexMax: 3,
+        precipitationSum: 5,
+        rainSum: 0,
+        snowfallSum: 4,
         precipitationProbabilityMax: 80,
         windSpeedMax: 20,
         windGustsMax: 35,
@@ -103,7 +199,9 @@ mock.module('@/components/charts/HourlyDetailChart', () => ({
 }));
 
 mock.module('@/components/charts/HourlySnowChart', () => ({
-  HourlySnowChart: () => <div data-testid="hourly-snow-chart" />,
+  HourlySnowChart: ({ snowfallSum }: { snowfallSum?: number }) => (
+    <div data-testid="hourly-snow-chart">Hourly snow total: {snowfallSum ?? 0}</div>
+  ),
 }));
 
 mock.module('@/components/charts/RecentSnowChart', () => ({
@@ -219,6 +317,28 @@ describe('ResortPage', () => {
     await user.click(screen.getByRole('radio', { name: 'Ski day' }));
     expect(screen.getByRole('radio', { name: 'Calendar day' })).not.toBeChecked();
     expect(screen.getByRole('radio', { name: 'Ski day' })).toBeChecked();
+  });
+
+  it('keeps displayed snowfall totals in sync when attribution mode changes', async () => {
+    const user = userEvent.setup();
+    renderResortPage();
+
+    const selectedCardSnow = document.querySelector('.day-card--selected .day-card__snow');
+    expect(selectedCardSnow?.textContent).toContain('5.1"');
+    expect(screen.getByText('7.1" next 7 days')).toBeInTheDocument();
+    expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent('Hourly snow total: 13');
+    expect(screen.getByText('3.1"')).toBeInTheDocument();
+    expect(screen.getAllByText('5.1"').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('7.1"')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'Ski day' }));
+
+    expect(selectedCardSnow?.textContent).toContain('5.9"');
+    expect(screen.getByText('8.3" next 7 days')).toBeInTheDocument();
+    expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent('Hourly snow total: 15');
+    expect(screen.getByText('3.5"')).toBeInTheDocument();
+    expect(screen.getAllByText('5.9"').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('7.9"')).toBeInTheDocument();
   });
 
   it('opens and closes the attribution info popover from the info icon', async () => {

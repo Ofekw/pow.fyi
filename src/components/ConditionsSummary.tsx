@@ -10,6 +10,10 @@ import { Snowflake, CloudRain, Wind, Droplets, Thermometer, Layers } from 'lucid
 import { WeatherIcon } from '@/components/icons';
 import { useUnits } from '@/context/UnitsContext';
 import { weatherDescription, fmtTemp, fmtElevation, fmtSnow, cmToIn } from '@/utils/weather';
+import {
+  getAttributedSnowfallTotal,
+  type SnowAttributionMode,
+} from '@/components/snowTimelinePeriods';
 import './ConditionsSummary.css';
 
 interface Props {
@@ -23,6 +27,7 @@ interface Props {
   selectedDayIdx: number;
   /** Elevations in meters */
   elevations: { base: number; mid: number; top: number };
+  attributionMode?: SnowAttributionMode;
 }
 
 interface BandRow {
@@ -30,9 +35,15 @@ interface BandRow {
   elevation: number;
   daily: DailyMetrics | undefined;
   hourly: HourlyMetrics[];
+  displayedSnowfall: number;
 }
 
-export function ConditionsSummary({ bands, selectedDayIdx, elevations }: Props) {
+export function ConditionsSummary({
+  bands,
+  selectedDayIdx,
+  elevations,
+  attributionMode = 'calendar',
+}: Props) {
   const { temp, elev, snow } = useUnits();
   const isImperial = snow === 'in';
 
@@ -48,6 +59,9 @@ export function ConditionsSummary({ bands, selectedDayIdx, elevations }: Props) 
       elevation: elevations[key],
       daily,
       hourly,
+      displayedSnowfall: daily
+        ? getAttributedSnowfallTotal(daily.date, daily.snowfallSum, bandData.hourly, attributionMode)
+        : 0,
     };
   });
 
@@ -129,8 +143,8 @@ export function ConditionsSummary({ bands, selectedDayIdx, elevations }: Props) 
           {bandRows.map((row) => (
             <div key={row.label} className="conditions-summary__cell" role="cell">
               {row.daily ? (
-                <span className={`conditions-summary__snow ${row.daily.snowfallSum > 0 ? 'has-snow' : ''}`}>
-                  {row.daily.snowfallSum > 0 ? fmtSnow(row.daily.snowfallSum, snow) : '—'}
+                <span className={`conditions-summary__snow ${row.displayedSnowfall > 0 ? 'has-snow' : ''}`}>
+                  {row.displayedSnowfall > 0 ? fmtSnow(row.displayedSnowfall, snow) : '—'}
                 </span>
               ) : '—'}
             </div>
