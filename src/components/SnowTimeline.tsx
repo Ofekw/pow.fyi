@@ -64,11 +64,11 @@ export function SnowTimeline({
           }))
         : [];
 
-    const buildForecastBar = (date: string, fallbackSnowfallSum: number) => {
+    const buildForecastBar = (date: string, dailySnowfallSum: number) => {
       const periods = toDisplayPeriods(date);
       const raw = periods.length > 0
         ? periods.reduce((sum, period) => sum + period.snowfall, 0)
-        : fallbackSnowfallSum;
+        : dailySnowfallSum;
 
       return {
         date,
