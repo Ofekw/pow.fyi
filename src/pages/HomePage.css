@@ -108,6 +108,17 @@
   animation: spin 3s linear infinite;
 }
 
+/* Argo easter egg: no spin, then shoot right */
+.home__easter-egg-image--argo {
+  animation: none;
+  transform: translateX(0);
+}
+
+.home__easter-egg-image--argo-shoot {
+  transform: translateX(120vw);
+  transition: transform 0.5s ease-in;
+}
+
 /* MFJH expanding easter egg */
 .home__easter-egg--mfjh .home__easter-egg-image--mfjh {
   width: auto;

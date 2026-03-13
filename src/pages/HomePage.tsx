@@ -5,6 +5,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { ResortCard } from '@/components/ResortCard';
 import { FavoriteCard } from '@/components/FavoriteCard';
 import { SearchDropdown } from '@/components/SearchDropdown';
+import argoImage from '@/resources/images/argo.jpg';
 import babkaImage from '@/resources/images/babka.png';
 import mfjhImage from '@/resources/images/mfjh.webp';
 import ofekImage from '@/resources/images/ofek.webp';
@@ -162,9 +163,10 @@ export function HomePage() {
   const { favorites, toggle, isFav } = useFavorites();
 
   const isEasterEgg = query.toLowerCase() === 'ofek';
+  const isArgoEasterEgg = query.toLowerCase() === 'argo';
   const isMfjhEasterEgg = query.toLowerCase() === 'mfjh';
   const isBabkaEasterEgg = query.toLowerCase() === 'babka';
-  const isAnyEasterEgg = isEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg;
+  const isAnyEasterEgg = isEasterEgg || isArgoEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg;
   const filtered = useMemo(() => searchResorts(query), [query]);
 
   // Easter eggs are mutually exclusive — only one can be active at a time — so easterEggRef
@@ -192,6 +194,29 @@ export function HomePage() {
   // MFJH easter egg: grow from 10vh to 100vh in 10% increments every 500ms,
   // then auto-dismiss after a 1s hold.
   const [mfjhSize, setMfjhSize] = useState(10);
+  const [isArgoShooting, setIsArgoShooting] = useState(false);
+
+  // Argo easter egg: hold for 3s, then animate off-screen to the right in 0.5s,
+  // then dismiss once the animation completes.
+  useEffect(() => {
+    if (!isArgoEasterEgg) {
+      setIsArgoShooting(false);
+      return;
+    }
+
+    setIsArgoShooting(false);
+    const shootTimeout = setTimeout(() => {
+      setIsArgoShooting(true);
+    }, 3000);
+    const dismissTimeout = setTimeout(() => {
+      setQuery('');
+    }, 3500);
+
+    return () => {
+      clearTimeout(shootTimeout);
+      clearTimeout(dismissTimeout);
+    };
+  }, [isArgoEasterEgg]);
 
   useEffect(() => {
     if (!isMfjhEasterEgg) {
@@ -313,6 +338,33 @@ export function HomePage() {
             src={ofekImage}
             alt="Easter egg"
             className="home__easter-egg-image"
+          />
+        </div>
+      )}
+
+      {/* Easter Egg: Show image when user searches for "argo" */}
+      {isArgoEasterEgg && (
+        <div
+          ref={easterEggRef}
+          className="home__easter-egg"
+          data-testid="argo-easter-egg"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Argo easter egg overlay"
+          tabIndex={0}
+          onClick={() => setQuery('')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setQuery('');
+            }
+          }}
+        >
+          <img
+            src={argoImage}
+            alt="Argo easter egg"
+            className={`home__easter-egg-image home__easter-egg-image--argo${isArgoShooting ? ' home__easter-egg-image--argo-shoot' : ''}`}
+            data-testid="argo-easter-egg-image"
           />
         </div>
       )}
