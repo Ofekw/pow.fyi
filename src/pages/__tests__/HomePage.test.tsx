@@ -4,6 +4,15 @@ import userEvent from '@testing-library/user-event';
 import { HomePage } from '@/pages/HomePage';
 import { renderWithProviders } from '@/test/test-utils';
 
+/** Renders HomePage and types `trigger` into the search box, returning the user instance. */
+async function triggerEasterEgg(trigger: string) {
+  const user = userEvent.setup();
+  renderWithProviders(<HomePage />);
+  const search = screen.getByPlaceholderText('Search resorts…');
+  await user.type(search, trigger);
+  return user;
+}
+
 beforeEach(() => {
   localStorage.clear();
 });
@@ -221,5 +230,111 @@ describe('HomePage', () => {
     expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
     // Overlay should still be present with no user interaction
     expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+  });
+
+  describe('easter egg focus placement', () => {
+    it('ofek easter egg dialog receives focus on mount', async () => {
+      await triggerEasterEgg('Ofek');
+
+      const dialog = screen.getByTestId('easter-egg');
+      expect(document.activeElement).toBe(dialog);
+    });
+
+    it('mfjh easter egg dialog receives focus on mount', async () => {
+      await triggerEasterEgg('mfjh');
+
+      const dialog = screen.getByTestId('mfjh-easter-egg');
+      expect(document.activeElement).toBe(dialog);
+    });
+
+    it('babka easter egg dialog receives focus on mount', async () => {
+      await triggerEasterEgg('babka');
+
+      const dialog = screen.getByTestId('babka-easter-egg');
+      expect(document.activeElement).toBe(dialog);
+    });
+  });
+
+  describe('easter egg keyboard dismissal', () => {
+    it('pressing Space on ofek easter egg dialog dismisses it', async () => {
+      const user = await triggerEasterEgg('Ofek');
+
+      expect(screen.getByTestId('easter-egg')).toBeInTheDocument();
+      await user.keyboard(' ');
+
+      expect(screen.queryByTestId('easter-egg')).not.toBeInTheDocument();
+    });
+
+    it('pressing Enter on ofek easter egg dialog dismisses it', async () => {
+      const user = await triggerEasterEgg('Ofek');
+
+      expect(screen.getByTestId('easter-egg')).toBeInTheDocument();
+      await user.keyboard('{Enter}');
+
+      expect(screen.queryByTestId('easter-egg')).not.toBeInTheDocument();
+    });
+
+    it('pressing Escape dismisses the ofek easter egg', async () => {
+      const user = await triggerEasterEgg('Ofek');
+
+      expect(screen.getByTestId('easter-egg')).toBeInTheDocument();
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByTestId('easter-egg')).not.toBeInTheDocument();
+    });
+
+    it('pressing Space on mfjh easter egg dialog dismisses it', async () => {
+      const user = await triggerEasterEgg('mfjh');
+
+      expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
+      await user.keyboard(' ');
+
+      expect(screen.queryByTestId('mfjh-easter-egg')).not.toBeInTheDocument();
+    });
+
+    it('pressing Enter on mfjh easter egg dialog dismisses it', async () => {
+      const user = await triggerEasterEgg('mfjh');
+
+      expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
+      await user.keyboard('{Enter}');
+
+      expect(screen.queryByTestId('mfjh-easter-egg')).not.toBeInTheDocument();
+    });
+
+    it('pressing Escape dismisses the mfjh easter egg', async () => {
+      const user = await triggerEasterEgg('mfjh');
+
+      expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByTestId('mfjh-easter-egg')).not.toBeInTheDocument();
+    });
+
+    it('pressing Space on babka easter egg dialog dismisses it', async () => {
+      const user = await triggerEasterEgg('babka');
+
+      expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+      await user.keyboard(' ');
+
+      expect(screen.queryByTestId('babka-easter-egg')).not.toBeInTheDocument();
+    });
+
+    it('pressing Enter on babka easter egg dialog dismisses it', async () => {
+      const user = await triggerEasterEgg('babka');
+
+      expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+      await user.keyboard('{Enter}');
+
+      expect(screen.queryByTestId('babka-easter-egg')).not.toBeInTheDocument();
+    });
+
+    it('pressing Escape dismisses the babka easter egg', async () => {
+      const user = await triggerEasterEgg('babka');
+
+      expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByTestId('babka-easter-egg')).not.toBeInTheDocument();
+    });
   });
 });
