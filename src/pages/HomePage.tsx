@@ -162,11 +162,12 @@ export function HomePage() {
   const [query, setQuery] = useState('');
   const { favorites, toggle, isFav } = useFavorites();
 
-  const isEasterEgg = query.toLowerCase() === 'ofek';
-  const isArgoEasterEgg = query.toLowerCase() === 'argo';
-  const isMfjhEasterEgg = query.toLowerCase() === 'mfjh';
-  const isBabkaEasterEgg = query.toLowerCase() === 'babka';
-  const isAnyEasterEgg = isEasterEgg || isArgoEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg;
+  const normalizedQuery = query.toLowerCase();
+  const isOfekEasterEgg = ['ofek', 'lil guy'].includes(normalizedQuery);
+  const isArgoEasterEgg = ['argo', 'chad', 'chadwick'].includes(normalizedQuery);
+  const isMfjhEasterEgg = ['mfjh', 'jacob', 'jake'].includes(normalizedQuery);
+  const isBabkaEasterEgg = ['babka', 'delilah', 'dog', 'noodle'].includes(normalizedQuery);
+  const isAnyEasterEgg = isOfekEasterEgg || isArgoEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg;
   const filtered = useMemo(() => searchResorts(query), [query]);
 
   // Easter eggs are mutually exclusive — only one can be active at a time — so easterEggRef
@@ -317,7 +318,7 @@ export function HomePage() {
       ))}
 
       {/* Easter Egg: Show spinning image when user searches for "Ofek" */}
-      {isEasterEgg && (
+      {isOfekEasterEgg && (
         <div
           ref={easterEggRef}
           className="home__easter-egg"

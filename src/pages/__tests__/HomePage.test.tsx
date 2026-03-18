@@ -123,6 +123,16 @@ describe('HomePage', () => {
     expect(screen.getByTestId('easter-egg')).toBeInTheDocument();
   });
 
+  it('shows easter egg when searching for "LiL gUy" (case-insensitive alias)', async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'LiL gUy');
+
+    expect(screen.getByTestId('easter-egg')).toBeInTheDocument();
+  });
+
   it('does not show easter egg for partial matches', async () => {
     const user = userEvent.setup();
     await renderHomePage();
@@ -159,6 +169,26 @@ describe('HomePage', () => {
 
     const search = screen.getByPlaceholderText('Search resorts…');
     await user.type(search, 'ArGo');
+
+    expect(screen.getByTestId('argo-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows argo easter egg when searching for "CHAD" (uppercase alias)', async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'CHAD');
+
+    expect(screen.getByTestId('argo-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows argo easter egg when searching for "ChAdWiCk" (mixed case alias)', async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'ChAdWiCk');
 
     expect(screen.getByTestId('argo-easter-egg')).toBeInTheDocument();
   });
@@ -225,6 +255,26 @@ describe('HomePage', () => {
     expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
   });
 
+  it('shows mfjh easter egg when searching for "JACOB" (uppercase alias)', async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'JACOB');
+
+    expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows mfjh easter egg when searching for "JaKe" (mixed case alias)', async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'JaKe');
+
+    expect(screen.getByTestId('mfjh-easter-egg')).toBeInTheDocument();
+  });
+
   it('does not show mfjh easter egg for partial matches', async () => {
     const user = userEvent.setup();
     await renderHomePage();
@@ -261,6 +311,36 @@ describe('HomePage', () => {
 
     const search = screen.getByPlaceholderText('Search resorts…');
     await user.type(search, 'BaBkA');
+
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows babka easter egg when searching for "DELILAH" (uppercase alias)', async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'DELILAH');
+
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows babka easter egg when searching for "DoG" (mixed case alias)', async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'DoG');
+
+    expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
+  });
+
+  it('shows babka easter egg when searching for "NoOdLe" (mixed case alias)', async () => {
+    const user = userEvent.setup();
+    await renderHomePage();
+
+    const search = screen.getByPlaceholderText('Search resorts…');
+    await user.type(search, 'NoOdLe');
 
     expect(screen.getByTestId('babka-easter-egg')).toBeInTheDocument();
   });
