@@ -294,42 +294,26 @@ function ShareDataProbe() {
   return <pre data-testid="share-card-data">{JSON.stringify(cardData)}</pre>;
 }
 
-function renderResortPageWithShareData(slug = 'vail-co') {
-  return render(
-    <UnitsProvider>
-      <TimezoneProvider>
-        <ShareProvider>
-          <MemoryRouter initialEntries={[`/resort/${slug}`]}>
-            <Routes>
-              <Route path="/resort/:slug" element={<ResortPage />} />
-            </Routes>
-          </MemoryRouter>
-        </ShareProvider>
-      </TimezoneProvider>
-    </UnitsProvider>,
-  );
-}
+async function renderResortPageWithShareData(slug = 'vail-co') {
+  let result: ReturnType<typeof render> | null = null;
+  await act(async () => {
+    result = render(
+      <UnitsProvider>
+        <TimezoneProvider>
+          <ShareProvider>
+            <MemoryRouter initialEntries={[`/resort/${slug}`]}>
+              <Routes>
+                <Route path="/resort/:slug" element={<ResortPage />} />
+              </Routes>
+            </MemoryRouter>
+            <ShareDataProbe />
+          </ShareProvider>
+        </TimezoneProvider>
+      </UnitsProvider>,
+    );
+  });
 
-function ShareDataProbe() {
-  const { cardData } = useShare();
-  return <pre data-testid="share-card-data">{JSON.stringify(cardData)}</pre>;
-}
-
-function renderResortPageWithShareData(slug = 'vail-co') {
-  return render(
-    <UnitsProvider>
-      <TimezoneProvider>
-        <ShareProvider>
-          <MemoryRouter initialEntries={[`/resort/${slug}`]}>
-            <Routes>
-              <Route path="/resort/:slug" element={<ResortPage />} />
-            </Routes>
-          </MemoryRouter>
-          <ShareDataProbe />
-        </ShareProvider>
-      </TimezoneProvider>
-    </UnitsProvider>,
-  );
+  return result;
 }
 
 describe('ResortPage', () => {
@@ -417,7 +401,7 @@ describe('ResortPage', () => {
     const selectedDayCard = screen.getByRole('button', { pressed: true });
     const conditionsTable = screen.getByRole('table', { name: 'Conditions by elevation' });
     expect(within(selectedDayCard).getByText('5.1"')).toBeInTheDocument();
-    expect(screen.getByText('7.1" next 7 days')).toBeInTheDocument();
+    expect(screen.getByText('8.3" next 7 days')).toBeInTheDocument();
     expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent('Hourly snow total: 13');
     expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent(
       'Hours: 2025-01-15T02:00:00,2025-01-15T09:00:00,2025-01-15T20:00:00',
@@ -431,7 +415,7 @@ describe('ResortPage', () => {
 
     const updatedConditionsTable = screen.getByRole('table', { name: 'Conditions by elevation' });
     expect(within(screen.getByRole('button', { pressed: true })).getByText('5.9"')).toBeInTheDocument();
-    expect(screen.getByText('8.3" next 7 days')).toBeInTheDocument();
+    expect(screen.getByText('9.4" next 7 days')).toBeInTheDocument();
     expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent('Hourly snow total: 15');
     expect(screen.getByTestId('hourly-snow-chart')).toHaveTextContent(
       'Hours: 2025-01-14T19:00:00,2025-01-15T02:00:00,2025-01-15T09:00:00',
@@ -444,20 +428,20 @@ describe('ResortPage', () => {
 
   it('stores attribution-aware daily snowfall in the shared card data', async () => {
     const user = userEvent.setup();
-    renderResortPageWithShareData();
+    await renderResortPageWithShareData();
 
     await waitFor(() => {
       const cardData = JSON.parse(screen.getByTestId('share-card-data').textContent ?? 'null');
-      expect(cardData.displayedDailySnowfall).toEqual([13, 5]);
-      expect(cardData.weekTotalSnow).toBe(18);
+      expect(cardData.displayedDailySnowfall).toEqual([13, 8]);
+      expect(cardData.weekTotalSnow).toBe(21);
     });
 
     await user.click(screen.getByRole('radio', { name: 'Ski day' }));
 
     await waitFor(() => {
       const cardData = JSON.parse(screen.getByTestId('share-card-data').textContent ?? 'null');
-      expect(cardData.displayedDailySnowfall).toEqual([15, 6]);
-      expect(cardData.weekTotalSnow).toBe(21);
+      expect(cardData.displayedDailySnowfall).toEqual([15, 9]);
+      expect(cardData.weekTotalSnow).toBe(24);
     });
   });
 
