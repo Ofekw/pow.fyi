@@ -50,12 +50,24 @@ export function MiniSnowTimeline({ pastDays, forecastDays, forecastHourly, attri
       if (!forecastHourly) return null;
       if (isSkiMode) {
         const skiPeriods = splitSnowAttributionPeriods(date, forecastHourly, 'ski');
-        const overnight = skiPeriods.find((p) => p.key === 'overnight')?.snowfall ?? 0;
-        const daytime = skiPeriods.find((p) => p.key === 'daytime')?.snowfall ?? 0;
-        return { am: 0, pm: toDisplay(daytime), overnight: toDisplay(overnight) };
+        const overnightCm = skiPeriods.find((p) => p.key === 'overnight')?.snowfall ?? 0;
+        const daytimeCm = skiPeriods.find((p) => p.key === 'daytime')?.snowfall ?? 0;
+        const totalCm = daytimeCm + overnightCm;
+        return {
+          am: 0,
+          pm: toDisplay(daytimeCm),
+          overnight: toDisplay(overnightCm),
+          total: toDisplay(totalCm),
+        };
       }
       const p = splitDayPeriods(date, forecastHourly);
-      return { am: toDisplay(p.am), pm: toDisplay(p.pm), overnight: toDisplay(p.overnight) };
+      const totalCm = p.am + p.pm + p.overnight;
+      return {
+        am: toDisplay(p.am),
+        pm: toDisplay(p.pm),
+        overnight: toDisplay(p.overnight),
+        total: toDisplay(totalCm),
+      };
     }
 
     const todayPeriods = todayDay ? getPeriods(todayDay.date) : null;
@@ -63,7 +75,10 @@ export function MiniSnowTimeline({ pastDays, forecastDays, forecastHourly, attri
     const todayBar = todayDay
       ? {
           date: todayDay.date,
-          snow: toDisplay(todayDay.snowfallSum),
+          snow:
+            isSkiMode && forecastHourly && todayPeriods
+              ? todayPeriods.total
+              : toDisplay(todayDay.snowfallSum),
           am: todayPeriods?.am ?? 0,
           pm: todayPeriods?.pm ?? 0,
           overnight: todayPeriods?.overnight ?? 0,
@@ -74,7 +89,10 @@ export function MiniSnowTimeline({ pastDays, forecastDays, forecastHourly, attri
       const periods = getPeriods(d.date);
       return {
         date: d.date,
-        snow: toDisplay(d.snowfallSum),
+        snow:
+          isSkiMode && forecastHourly && periods
+            ? periods.total
+            : toDisplay(d.snowfallSum),
         am: periods?.am ?? 0,
         pm: periods?.pm ?? 0,
         overnight: periods?.overnight ?? 0,
