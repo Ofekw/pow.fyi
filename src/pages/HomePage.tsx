@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect, useRef, forwardRef } from 'react';
 import { Snowflake, Star } from 'lucide-react';
-import { searchResorts, RESORTS, getResortBySlug } from '@/data/resorts';
+import { getResortBySlug } from '@/data/resorts';
 import { useFavorites } from '@/hooks/useFavorites';
-import { ResortCard } from '@/components/ResortCard';
 import { FavoriteCard } from '@/components/FavoriteCard';
 import { SearchDropdown } from '@/components/SearchDropdown';
 import argoImage from '@/resources/images/argo.jpg';
@@ -168,7 +167,6 @@ export function HomePage() {
   const isMfjhEasterEgg = ['mfjh', 'jacob', 'jake'].includes(normalizedQuery);
   const isBabkaEasterEgg = ['babka', 'delilah', 'dog', 'noodle'].includes(normalizedQuery);
   const isAnyEasterEgg = isOfekEasterEgg || isArgoEasterEgg || isMfjhEasterEgg || isBabkaEasterEgg;
-  const filtered = useMemo(() => searchResorts(query), [query]);
 
   // Easter eggs are mutually exclusive — only one can be active at a time — so easterEggRef
   // is always attached to at most one dialog at a time.
@@ -257,17 +255,6 @@ export function HomePage() {
     [favorites],
   );
 
-  // Group by region
-  const grouped = useMemo(() => {
-    const map = new Map<string, typeof RESORTS>();
-    for (const r of filtered) {
-      const list = map.get(r.region) ?? [];
-      list.push(r);
-      map.set(r.region, list);
-    }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
-
   return (
     <div className="home">
       <section className="home__hero">
@@ -297,25 +284,9 @@ export function HomePage() {
         </section>
       )}
 
-      {grouped.length === 0 && (
-        <p className="home__empty">No resorts match "{query}"</p>
+      {favoriteResorts.length === 0 && (
+        <p className="home__empty">Use the search bar to find and favorite resorts</p>
       )}
-
-      {grouped.map(([region, resorts]) => (
-        <section key={region} className="home__region">
-          <h2 className="home__region-title">{region}</h2>
-          <div className="home__grid">
-            {resorts.map((r) => (
-              <ResortCard
-                key={r.slug}
-                resort={r}
-                isFavorite={isFav(r.slug)}
-                onToggleFavorite={() => toggle(r.slug)}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
 
       {/* Easter Egg: Show spinning image when user searches for "Ofek" */}
       {isOfekEasterEgg && (

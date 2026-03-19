@@ -1060,3 +1060,15 @@ Installed PWAs and long-lived tabs could keep showing stale forecast data indefi
 
 ### Follow-up notes
 - Automatic reloads only happen for visible pages after the one-hour threshold; hidden tabs are left alone until the user returns to them.
+
+## Homepage Cleanup — Remove Static Resort Listings
+
+### What changed
+Removed all static resort cards grouped by region from the homepage. The homepage now shows only the Favorites section (when the user has favorited resorts) and a helpful empty state message ("Use the search bar to find and favorite resorts") when no favorites exist. Users browse resorts exclusively through the SearchDropdown search bar, which already supported searching, navigating to resort pages, and toggling favorites.
+
+### Why
+The static resort listing made the homepage cluttered. The search bar provides a better UX for discovering resorts, and the Favorites section gives users quick access to their preferred resorts.
+
+### Key files affected
+- `src/pages/HomePage.tsx` — removed `searchResorts`, `RESORTS`, and `ResortCard` imports; removed `filtered` and `grouped` useMemo computations; removed grouped-by-region resort card sections; added empty state message for users with no favorites
+- `src/pages/__tests__/HomePage.test.tsx` — updated tests to reflect the new homepage behavior (no static resort cards, no region groupings, empty state message)

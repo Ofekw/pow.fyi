@@ -47,40 +47,21 @@ describe('HomePage', () => {
     expect(screen.getByPlaceholderText('Search resorts…')).toBeInTheDocument();
   });
 
-  it('renders resort cards', async () => {
+  it('does not render static resort cards', async () => {
     await renderHomePage();
-    // Vail should be listed
-    expect(screen.getByText('Vail')).toBeInTheDocument();
+    // Resort names like Vail should not appear on the page (no static listing)
+    expect(screen.queryByText('Vail')).not.toBeInTheDocument();
   });
 
-  it('groups resorts by region', async () => {
+  it('does not group resorts by region', async () => {
     await renderHomePage();
-    expect(screen.getByText('Colorado')).toBeInTheDocument();
-    expect(screen.getByText('Utah')).toBeInTheDocument();
+    expect(screen.queryByText('Colorado')).not.toBeInTheDocument();
+    expect(screen.queryByText('Utah')).not.toBeInTheDocument();
   });
 
-  it('filters resorts by search query', async () => {
-    const user = userEvent.setup();
+  it('shows empty state message when no favorites', async () => {
     await renderHomePage();
-
-    const search = screen.getByPlaceholderText('Search resorts…');
-    await user.type(search, 'Vail');
-
-    // Vail appears in both the dropdown and the resort card
-    expect(screen.getAllByText('Vail').length).toBeGreaterThanOrEqual(1);
-    // Stowe should be filtered out
-    expect(screen.queryByText('Stowe')).not.toBeInTheDocument();
-  });
-
-  it('shows no-match message when nothing found', async () => {
-    const user = userEvent.setup();
-    await renderHomePage();
-
-    const search = screen.getByPlaceholderText('Search resorts…');
-    await user.type(search, 'zzznotaresort');
-
-    // No-match message appears in both the dropdown and the main section
-    expect(screen.getAllByText(/no resorts match/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/use the search bar to find and favorite resorts/i)).toBeInTheDocument();
   });
 
   it('does not show favorites section when none favorited', async () => {
