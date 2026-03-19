@@ -214,7 +214,7 @@ describe('SearchDropdown geolocation auto-fetch', () => {
   it('auto-fetches nearby resorts when permission is already granted', async () => {
     mockPermissions('granted');
     mockGeolocation();
-    renderDropdown();
+    await renderDropdown();
 
     const locationBtn = screen.getByTitle('Show nearby resorts');
     await waitFor(() => {
@@ -297,7 +297,7 @@ describe('SearchDropdown geolocation auto-fetch', () => {
     const user = userEvent.setup();
     mockPermissions('granted');
     mockGeolocation();
-    renderDropdown();
+    await renderDropdown();
 
     const locationBtn = screen.getByTitle('Show nearby resorts');
     await waitFor(() => {
