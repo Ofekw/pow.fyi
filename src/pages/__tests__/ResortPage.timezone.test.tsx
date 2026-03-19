@@ -5,6 +5,7 @@ import { Routes, Route, MemoryRouter } from 'react-router-dom';
 import { render } from '@testing-library/react';
 import { UnitsProvider } from '@/context/UnitsContext';
 import { TimezoneProvider, useTimezone } from '@/context/TimezoneContext';
+import { SnowAttributionProvider } from '@/context/SnowAttributionContext';
 import type { BandForecast, Resort } from '@/types';
 
 const todayIsoInTimezoneMock = mock((tz: string) => {
@@ -140,7 +141,9 @@ function renderHarness() {
   return render(
     <UnitsProvider>
       <TimezoneProvider>
-        <ResortPageTimezoneHarness />
+        <SnowAttributionProvider>
+          <ResortPageTimezoneHarness />
+        </SnowAttributionProvider>
       </TimezoneProvider>
     </UnitsProvider>,
   );

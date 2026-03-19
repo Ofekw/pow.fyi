@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { UnitsProvider } from './context/UnitsContext';
 import { TimezoneProvider } from './context/TimezoneContext';
 import { ShareProvider } from './context/ShareContext';
+import { SnowAttributionProvider } from './context/SnowAttributionContext';
 import { App } from './App';
 import { registerAppServiceWorker } from './pwa';
 import './styles/index.css';
@@ -15,9 +16,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <UnitsProvider>
       <TimezoneProvider>
         <ShareProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <SnowAttributionProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </SnowAttributionProvider>
         </ShareProvider>
       </TimezoneProvider>
     </UnitsProvider>

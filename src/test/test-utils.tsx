@@ -4,9 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { UnitsProvider } from '@/context/UnitsContext';
 import { TimezoneProvider } from '@/context/TimezoneContext';
 import { ShareProvider } from '@/context/ShareContext';
+import { SnowAttributionProvider } from '@/context/SnowAttributionContext';
 
 /**
- * Wraps children in all app providers (Units, Timezone, Share, Router).
+ * Wraps children in all app providers (Units, Timezone, Share, SnowAttribution, Router).
  * Pass `routerProps` to configure MemoryRouter initial entries.
  */
 export function AllProviders({
@@ -20,7 +21,9 @@ export function AllProviders({
     <UnitsProvider>
       <TimezoneProvider>
         <ShareProvider>
-          <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+          <SnowAttributionProvider>
+            <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+          </SnowAttributionProvider>
         </ShareProvider>
       </TimezoneProvider>
     </UnitsProvider>

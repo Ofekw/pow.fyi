@@ -5,11 +5,18 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { ResortCard } from '@/components/ResortCard';
 import { FavoriteCard } from '@/components/FavoriteCard';
 import { SearchDropdown } from '@/components/SearchDropdown';
+import { useSnowAttribution } from '@/context/SnowAttributionContext';
+import type { SnowAttributionMode } from '@/components/snowTimelinePeriods';
 import argoImage from '@/resources/images/argo.jpg';
 import babkaImage from '@/resources/images/babka.png';
 import mfjhImage from '@/resources/images/mfjh.webp';
 import ofekImage from '@/resources/images/ofek.webp';
 import './HomePage.css';
+
+const SNOW_ATTRIBUTION_OPTIONS: Array<{ value: SnowAttributionMode; label: string }> = [
+  { value: 'calendar', label: 'Calendar day' },
+  { value: 'ski', label: 'Ski day' },
+];
 
 const BABKA_SIZE = 200;
 const BABKA_EYE_LEFT_X = 0.33;
@@ -161,6 +168,7 @@ const BabkaOverlay = forwardRef<HTMLDivElement, BabkaOverlayProps>(function Babk
 export function HomePage() {
   const [query, setQuery] = useState('');
   const { favorites, toggle, isFav } = useFavorites();
+  const { mode: snowAttributionMode, setMode: setSnowAttributionMode } = useSnowAttribution();
 
   const normalizedQuery = query.toLowerCase();
   const isOfekEasterEgg = ['ofek', 'lil guy'].includes(normalizedQuery);
@@ -278,6 +286,28 @@ export function HomePage() {
           Free &amp; open-source ski resort forecasts for North America
         </p>
         <SearchDropdown query={query} onQueryChange={setQuery} isFav={isFav} onToggleFavorite={toggle} />
+        <div className="home__attribution-control">
+          <span className="home__attribution-label">Daily snow</span>
+          <fieldset className="home__attribution-toggle">
+            <legend className="home__sr-only">Daily snow attribution</legend>
+            {SNOW_ATTRIBUTION_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className={`home__attribution-btn ${snowAttributionMode === option.value ? 'active' : ''}`}
+              >
+                <input
+                  className="home__attribution-input"
+                  type="radio"
+                  name="snow-attribution-home"
+                  value={option.value}
+                  checked={snowAttributionMode === option.value}
+                  onChange={() => setSnowAttributionMode(option.value)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </fieldset>
+        </div>
       </section>
 
       {/* Favourites section — only visible when at least one resort is favourited */}

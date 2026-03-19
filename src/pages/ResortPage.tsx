@@ -13,6 +13,7 @@ import { ElevationToggle } from '@/components/ElevationToggle';
 import { SnowTimeline } from '@/components/SnowTimeline';
 import { ConditionsSummary } from '@/components/ConditionsSummary';
 import { useShare } from '@/context/ShareContext';
+import { useSnowAttribution } from '@/context/SnowAttributionContext';
 import { DailyForecastChart } from '@/components/charts/DailyForecastChart';
 import { HourlyDetailChart } from '@/components/charts/HourlyDetailChart';
 import { HourlySnowChart } from '@/components/charts/HourlySnowChart';
@@ -86,7 +87,7 @@ export function ResortPage() {
 
   const [band, setBand] = useState<ElevationBand>(initialBand);
   const [selectedDayIdx, setSelectedDayIdx] = useState(initialDay);
-  const [snowAttributionMode, setSnowAttributionMode] = useState<SnowAttributionMode>('calendar');
+  const { mode: snowAttributionMode, setMode: setSnowAttributionMode } = useSnowAttribution();
   const [isAttributionInfoOpen, setIsAttributionInfoOpen] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const prevFetchedAtRef = useRef<string | undefined>(undefined);

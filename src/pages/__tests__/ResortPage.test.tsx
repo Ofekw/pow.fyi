@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { UnitsProvider } from '@/context/UnitsContext';
 import { TimezoneProvider } from '@/context/TimezoneContext';
 import { ShareProvider, useShare } from '@/context/ShareContext';
+import { SnowAttributionProvider } from '@/context/SnowAttributionContext';
 import { act, render } from '@testing-library/react';
 import type { BandForecast } from '@/types';
 
@@ -262,6 +263,7 @@ const { ResortPage } = await import('@/pages/ResortPage');
 
 beforeEach(() => {
   localStorage.clear();
+  document.cookie = 'pow_snow_attribution=; max-age=0; path=/';
 });
 
 afterAll(() => {
@@ -275,11 +277,13 @@ async function renderResortPage(slug = 'vail-co') {
       <UnitsProvider>
         <TimezoneProvider>
           <ShareProvider>
-            <MemoryRouter initialEntries={[`/resort/${slug}`]}>
-              <Routes>
-                <Route path="/resort/:slug" element={<ResortPage />} />
-              </Routes>
-            </MemoryRouter>
+            <SnowAttributionProvider>
+              <MemoryRouter initialEntries={[`/resort/${slug}`]}>
+                <Routes>
+                  <Route path="/resort/:slug" element={<ResortPage />} />
+                </Routes>
+              </MemoryRouter>
+            </SnowAttributionProvider>
           </ShareProvider>
         </TimezoneProvider>
       </UnitsProvider>,
@@ -301,12 +305,14 @@ async function renderResortPageWithShareData(slug = 'vail-co') {
       <UnitsProvider>
         <TimezoneProvider>
           <ShareProvider>
-            <MemoryRouter initialEntries={[`/resort/${slug}`]}>
-              <Routes>
-                <Route path="/resort/:slug" element={<ResortPage />} />
-              </Routes>
-            </MemoryRouter>
-            <ShareDataProbe />
+            <SnowAttributionProvider>
+              <MemoryRouter initialEntries={[`/resort/${slug}`]}>
+                <Routes>
+                  <Route path="/resort/:slug" element={<ResortPage />} />
+                </Routes>
+              </MemoryRouter>
+              <ShareDataProbe />
+            </SnowAttributionProvider>
           </ShareProvider>
         </TimezoneProvider>
       </UnitsProvider>,

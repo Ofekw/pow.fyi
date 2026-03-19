@@ -1060,3 +1060,31 @@ Installed PWAs and long-lived tabs could keep showing stale forecast data indefi
 
 ### Follow-up notes
 - Automatic reloads only happen for visible pages after the one-hour threshold; hidden tabs are left alone until the user returns to them.
+
+---
+
+## Calendar Day / Ski Day Toggle on Home Screen
+
+### What changed
+Added the calendar day / ski day snow attribution toggle to the home screen (it already existed on the resort detail page). The selected value is now shared across both pages and persisted as a cookie (`pow_snow_attribution`) with a 1-year expiry.
+
+- A new `SnowAttributionContext` (with `SnowAttributionProvider` and `useSnowAttribution` hook) manages the attribution mode globally and reads/writes it as a cookie.
+- `ResortPage` now reads the mode from context instead of managing it as local state.
+- `HomePage` renders a compact radio toggle ("Calendar day" / "Ski day") below the search bar using the same context.
+- `FavoriteCard` passes the attribution mode down to `MiniSnowTimeline`, which now supports ski mode — computing overnight (6 pm prev day–8 am) vs daytime (8 am–6 pm) bars, with an updated legend.
+- All providers and test utilities updated to include `SnowAttributionProvider`.
+
+### Why
+Requested feature (issue: "Add calendar day/ski day toggle to home screen") to let users set their preferred attribution mode once and have it apply consistently across both the home page favorites cards and the resort detail page, with the choice saved durably as a cookie.
+
+### Key files affected
+- `src/context/SnowAttributionContext.tsx` — new context with cookie persistence
+- `src/main.tsx` — added `SnowAttributionProvider` to provider chain
+- `src/test/test-utils.tsx` — added `SnowAttributionProvider` to `AllProviders`
+- `src/pages/ResortPage.tsx` — uses `useSnowAttribution` instead of local `useState`
+- `src/pages/HomePage.tsx` — adds attribution toggle UI and uses context
+- `src/pages/HomePage.css` — toggle styles (`.home__attribution-*`)
+- `src/components/FavoriteCard.tsx` — reads attribution mode from context and passes to `MiniSnowTimeline`
+- `src/components/MiniSnowTimeline.tsx` — new `attributionMode` prop; ski mode uses `splitSnowAttributionPeriods` for overnight/daytime bars and shows updated legend
+- `src/pages/__tests__/ResortPage.test.tsx` — added `SnowAttributionProvider` to render helpers, cleared cookie in `beforeEach`
+- `src/pages/__tests__/ResortPage.timezone.test.tsx` — added `SnowAttributionProvider` to render helper

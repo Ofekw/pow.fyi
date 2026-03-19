@@ -10,6 +10,7 @@ import { weatherDescription, fmtTemp, fmtSnow, fmtElevation } from '@/utils/weat
 import { todayIsoInTimezone } from '@/utils/dateKey';
 import { useUnits } from '@/context/UnitsContext';
 import { useTimezone } from '@/context/TimezoneContext';
+import { useSnowAttribution } from '@/context/SnowAttributionContext';
 import { MiniSnowTimeline } from '@/components/MiniSnowTimeline';
 import './FavoriteCard.css';
 
@@ -37,6 +38,7 @@ export function FavoriteCard({ resort, onToggleFavorite, loadDelay = 0 }: Props)
   const [loading, setLoading] = useState(true);
   const { temp, snow, elev } = useUnits();
   const { tz } = useTimezone();
+  const { mode: attributionMode } = useSnowAttribution();
 
   useEffect(() => {
     let cancelled = false;
@@ -215,6 +217,7 @@ export function FavoriteCard({ resort, onToggleFavorite, loadDelay = 0 }: Props)
               pastDays={summary.timelinePast}
               forecastDays={summary.timelineForecast}
               forecastHourly={summary.timelineHourly}
+              attributionMode={attributionMode}
             />
           )}
         </>
