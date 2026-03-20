@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { RESORTS, getResortBySlug, searchResorts } from '@/data/resorts';
+import { RESORTS, getResortBySlug, searchResorts, haversineKm } from '@/data/resorts';
 
 describe('resorts data', () => {
   describe('RESORTS', () => {
@@ -44,6 +44,24 @@ describe('resorts data', () => {
 
     it('returns undefined for unknown slug', () => {
       expect(getResortBySlug('nonexistent')).toBeUndefined();
+    });
+  });
+
+  describe('haversineKm', () => {
+    it('returns 0 for identical points', () => {
+      expect(haversineKm(39.64, -106.37, 39.64, -106.37)).toBe(0);
+    });
+
+    it('computes a reasonable distance between Denver and Vail (~119 km)', () => {
+      const km = haversineKm(39.7392, -104.9903, 39.6403, -106.3742);
+      expect(km).toBeGreaterThan(110);
+      expect(km).toBeLessThan(130);
+    });
+
+    it('is symmetric', () => {
+      const ab = haversineKm(40.0, -105.0, 39.0, -106.0);
+      const ba = haversineKm(39.0, -106.0, 40.0, -105.0);
+      expect(Math.abs(ab - ba)).toBeLessThan(0.001);
     });
   });
 

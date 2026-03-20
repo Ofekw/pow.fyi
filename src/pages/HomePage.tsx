@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useRef, forwardRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, forwardRef } from 'react';
 import { Snowflake, Star } from 'lucide-react';
-import { getResortBySlug } from '@/data/resorts';
+import { getResortBySlug, haversineKm } from '@/data/resorts';
 import { useFavorites } from '@/hooks/useFavorites';
 import { FavoriteCard } from '@/components/FavoriteCard';
 import { SearchDropdown } from '@/components/SearchDropdown';
@@ -164,10 +164,41 @@ const BabkaOverlay = forwardRef<HTMLDivElement, BabkaOverlayProps>(function Babk
   );
 });
 
+type SortBy = 'distance' | 'past7' | 'next7';
+
 export function HomePage() {
   const [query, setQuery] = useState('');
   const { favorites, toggle, isFav } = useFavorites();
   const { mode: snowAttributionMode, setMode: setSnowAttributionMode } = useSnowAttribution();
+
+  const [sortBy, setSortBy] = useState<SortBy>('next7');
+  const [snowData, setSnowData] = useState<Map<string, { past7Snow: number; next7Snow: number }>>(new Map());
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  const handleDataLoaded = useCallback((slug: string, data: { past7Snow: number; next7Snow: number }) => {
+    setSnowData((prev) => new Map(prev).set(slug, data));
+  }, []);
+
+  useEffect(() => {
+    if (sortBy !== 'distance') return;
+    if (userLocation) return;
+    if (!navigator.geolocation) {
+      setSortBy('next7');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        setGeoLoading(false);
+      },
+      () => {
+        setSortBy('next7');
+        setGeoLoading(false);
+      },
+    );
+  }, [sortBy, userLocation]);
 
   const normalizedQuery = query.toLowerCase();
   const isOfekEasterEgg = ['ofek', 'lil guy'].includes(normalizedQuery);
@@ -263,6 +294,33 @@ export function HomePage() {
     [favorites],
   );
 
+  const sortedFavoriteResorts = useMemo(() => {
+    const arr = [...favoriteResorts];
+    if (sortBy === 'distance') {
+      if (!userLocation) return favoriteResorts;
+      return arr.sort((a, b) => {
+        const dA = haversineKm(userLocation.lat, userLocation.lon, a.lat, a.lon);
+        const dB = haversineKm(userLocation.lat, userLocation.lon, b.lat, b.lon);
+        return dA - dB;
+      });
+    }
+    if (sortBy === 'past7') {
+      return arr.sort((a, b) => {
+        const vA = snowData.get(a.slug)?.past7Snow ?? -Infinity;
+        const vB = snowData.get(b.slug)?.past7Snow ?? -Infinity;
+        return vB - vA;
+      });
+    }
+    if (sortBy === 'next7') {
+      return arr.sort((a, b) => {
+        const vA = snowData.get(a.slug)?.next7Snow ?? -Infinity;
+        const vB = snowData.get(b.slug)?.next7Snow ?? -Infinity;
+        return vB - vA;
+      });
+    }
+    return arr;
+  }, [sortBy, favoriteResorts, snowData, userLocation]);
+
   return (
     <div className="home">
       <section className="home__hero">
@@ -300,14 +358,33 @@ export function HomePage() {
       {/* Favourites section — only visible when at least one resort is favourited */}
       {favoriteResorts.length > 0 && (
         <section className="home__region home__favorites">
-          <h2 className="home__region-title"><Star size={16} fill="currentColor" className="home__fav-icon" /> Favorites</h2>
+          <div className="home__favorites-header">
+            <h2 className="home__region-title"><Star size={16} fill="currentColor" className="home__fav-icon" /> Favorites</h2>
+            <div className="home__sort-control">
+              <label htmlFor="favorites-sort" className="home__sort-label">Sort by</label>
+              <select
+                id="favorites-sort"
+                className="home__sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+              >
+                <option value="distance">Distance</option>
+                <option value="past7">Snow: Past 7 Days</option>
+                <option value="next7">Snow: Next 7 Days</option>
+              </select>
+              {sortBy === 'distance' && geoLoading && (
+                <span className="home__sort-geo-loading">Getting location…</span>
+              )}
+            </div>
+          </div>
           <div className="home__grid">
-            {favoriteResorts.map((r, i) => (
+            {sortedFavoriteResorts.map((r) => (
               <FavoriteCard
                 key={r.slug}
                 resort={r}
                 onToggleFavorite={() => toggle(r.slug)}
-                loadDelay={i * 200}
+                loadDelay={favoriteResorts.indexOf(r) * 200}
+                onDataLoaded={handleDataLoaded}
               />
             ))}
           </div>

@@ -4,6 +4,39 @@ import userEvent from '@testing-library/user-event';
 import { HomePage } from '@/pages/HomePage';
 import { renderWithProviders } from '@/test/test-utils';
 
+mock.module('@/data/openmeteo', () => ({
+  fetchForecast: mock(async () => ({ band: 'mid', elevation: 3050, hourly: [], daily: [] })),
+  fetchHistorical: mock(async () => []),
+  fetchMultiModelForecast: mock(async () => ({ band: 'mid', elevation: 3050, hourly: [], daily: [] })),
+}));
+
+const savedGeolocation = navigator.geolocation;
+
+function mockGeolocation({ shouldFail = false, lat = 39.64, lon = -106.37 } = {}) {
+  Object.defineProperty(navigator, 'geolocation', {
+    value: {
+      getCurrentPosition: mock(
+        (success: PositionCallback, error?: PositionErrorCallback) => {
+          if (shouldFail) {
+            error?.({ code: 1, message: 'denied', PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError);
+          } else {
+            success({ coords: { latitude: lat, longitude: lon, accuracy: 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() } as GeolocationPosition);
+          }
+        },
+      ),
+    },
+    configurable: true,
+  });
+}
+
+function restoreGeolocation() {
+  Object.defineProperty(navigator, 'geolocation', { value: savedGeolocation, configurable: true });
+}
+
+function seedFavorites(...slugs: string[]) {
+  localStorage.setItem('pow_favorites', JSON.stringify(slugs.map((slug) => ({ slug, addedAt: new Date().toISOString() }))));
+}
+
 async function renderHomePage() {
   await act(async () => {
     renderWithProviders(<HomePage />);
@@ -26,6 +59,7 @@ beforeEach(() => {
 
 afterEach(() => {
   mock.restore();
+  restoreGeolocation();
 });
 
 describe('HomePage', () => {
@@ -389,6 +423,69 @@ describe('HomePage', () => {
 
       const dialog = screen.getByTestId('babka-easter-egg');
       expect(document.activeElement).toBe(dialog);
+    });
+  });
+
+  describe('favorites sort selector', () => {
+    it('does not show sort selector when there are no favorites', async () => {
+      await renderHomePage();
+      expect(screen.queryByRole('combobox', { name: /sort by/i })).not.toBeInTheDocument();
+    });
+
+    it('shows sort selector when favorites exist', async () => {
+      seedFavorites('vail-co', 'stowe-vt');
+      await renderHomePage();
+      expect(screen.getByRole('combobox', { name: /sort by/i })).toBeInTheDocument();
+    });
+
+    it('defaults to "Snow: Next 7 Days"', async () => {
+      seedFavorites('vail-co');
+      await renderHomePage();
+      const select = screen.getByRole('combobox', { name: /sort by/i }) as HTMLSelectElement;
+      expect(select.value).toBe('next7');
+    });
+
+    it('has Distance, Snow: Past 7 Days, and Snow: Next 7 Days options', async () => {
+      seedFavorites('vail-co');
+      await renderHomePage();
+      const select = screen.getByRole('combobox', { name: /sort by/i });
+      const options = Array.from(select.querySelectorAll('option')).map((o) => o.textContent);
+      expect(options).toContain('Distance');
+      expect(options).toContain('Snow: Past 7 Days');
+      expect(options).toContain('Snow: Next 7 Days');
+      expect(options).not.toContain('Default');
+    });
+
+    it('selecting Distance triggers geolocation request', async () => {
+      mockGeolocation();
+      seedFavorites('vail-co');
+      const user = userEvent.setup();
+      await renderHomePage();
+      await user.selectOptions(screen.getByRole('combobox', { name: /sort by/i }), 'distance');
+      expect(
+        (navigator.geolocation.getCurrentPosition as ReturnType<typeof mock>).mock.calls.length,
+      ).toBeGreaterThan(0);
+    });
+
+    it('falls back to next7 when geolocation is unavailable', async () => {
+      Object.defineProperty(navigator, 'geolocation', { value: undefined, configurable: true });
+      seedFavorites('vail-co');
+      const user = userEvent.setup();
+      await renderHomePage();
+      const select = screen.getByRole('combobox', { name: /sort by/i }) as HTMLSelectElement;
+      await user.selectOptions(select, 'distance');
+      expect(select.value).toBe('next7');
+    });
+
+    it('falls back to next7 when geolocation is denied', async () => {
+      mockGeolocation({ shouldFail: true });
+      seedFavorites('vail-co');
+      const user = userEvent.setup();
+      await renderHomePage();
+      const select = screen.getByRole('combobox', { name: /sort by/i }) as HTMLSelectElement;
+      await user.selectOptions(select, 'distance');
+      await act(async () => {});
+      expect(select.value).toBe('next7');
     });
   });
 

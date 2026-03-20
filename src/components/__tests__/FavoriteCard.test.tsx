@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterAll, mock, type Mock } from 'bun:test';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useTimezone } from '@/context/TimezoneContext';
@@ -95,6 +95,31 @@ beforeEach(() => {
 
 afterAll(() => {
   mock.restore();
+});
+
+describe('FavoriteCard onDataLoaded callback', () => {
+  it('calls onDataLoaded with slug and snow totals after data loads', async () => {
+    const onDataLoaded: Mock<(slug: string, data: { past7Snow: number; next7Snow: number }) => void> = mock(() => {});
+    renderWithProviders(
+      <FavoriteCard resort={resort} onToggleFavorite={() => {}} onDataLoaded={onDataLoaded} />,
+    );
+
+    await waitFor(() => {
+      expect(onDataLoaded).toHaveBeenCalledTimes(1);
+    });
+
+    const [slug, data] = onDataLoaded.mock.calls[0]!;
+    expect(slug).toBe('vail-co');
+    expect(typeof data.past7Snow).toBe('number');
+    expect(typeof data.next7Snow).toBe('number');
+    expect(data.next7Snow).toBeGreaterThan(0);
+  });
+
+  it('does not throw when onDataLoaded is not provided', async () => {
+    renderWithProviders(<FavoriteCard resort={resort} onToggleFavorite={() => {}} />);
+    await screen.findByText('Tomorrow');
+    // No error thrown — test passes implicitly
+  });
 });
 
 describe('FavoriteCard timezone behavior', () => {

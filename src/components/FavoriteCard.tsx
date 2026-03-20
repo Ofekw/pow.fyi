@@ -19,6 +19,8 @@ interface Props {
   onToggleFavorite: () => void;
   /** Stagger delay in ms to spread API requests across favorites */
   loadDelay?: number;
+  /** Called once snow data is loaded, so the parent can sort by these values */
+  onDataLoaded?: (slug: string, data: { past7Snow: number; next7Snow: number }) => void;
 }
 
 interface SummaryData {
@@ -33,7 +35,7 @@ interface SummaryData {
   timelineHourly: HourlyMetrics[];
 }
 
-export function FavoriteCard({ resort, onToggleFavorite, loadDelay = 0 }: Props) {
+export function FavoriteCard({ resort, onToggleFavorite, loadDelay = 0, onDataLoaded }: Props) {
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const { temp, snow, elev } = useUnits();
@@ -126,6 +128,7 @@ export function FavoriteCard({ resort, onToggleFavorite, loadDelay = 0 }: Props)
         const timelineHourly = futureData?.hourly ?? pastData?.hourly ?? [];
 
         setSummary({ past7Snow, next7Snow, tomorrow, timelinePast, timelineForecast, timelineHourly });
+        onDataLoaded?.(resort.slug, { past7Snow, next7Snow });
       } catch {
         // Silently fail — card still shows static info
       } finally {
