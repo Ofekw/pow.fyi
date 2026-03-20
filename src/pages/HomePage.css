@@ -116,7 +116,7 @@
 .home__empty {
   text-align: center;
   color: var(--color-text-muted);
-  padding: var(--space-2xl) 0;
+  margin-top: var(--space-md);
 }
 
 .home__region {

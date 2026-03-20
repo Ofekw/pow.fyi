@@ -355,6 +355,9 @@ export function HomePage() {
             </fieldset>
           </div>
         )}
+        {favoriteResorts.length === 0 && (
+          <p className="home__empty">Use the search bar to find and favorite resorts</p>
+        )}
       </section>
 
       {/* Favourites section — only visible when at least one resort is favourited */}
@@ -393,9 +396,6 @@ export function HomePage() {
         </section>
       )}
 
-      {favoriteResorts.length === 0 && (
-        <p className="home__empty">Use the search bar to find and favorite resorts</p>
-      )}
 
       {/* Easter Egg: Show spinning image when user searches for "Ofek" */}
       {isOfekEasterEgg && (
