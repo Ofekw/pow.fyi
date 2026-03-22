@@ -600,19 +600,28 @@ describe('HomePage', () => {
   });
 
   describe('Snow attribution toggle', () => {
-    it('renders Calendar day and Ski day options', async () => {
+    it('is hidden when no favorites are selected', async () => {
+      await renderHomePage();
+      expect(screen.queryByRole('radio', { name: 'Calendar day' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('radio', { name: 'Ski day' })).not.toBeInTheDocument();
+    });
+
+    it('renders Calendar day and Ski day options when favorites exist', async () => {
+      seedFavorites('vail-co');
       await renderHomePage();
       expect(screen.getByRole('radio', { name: 'Calendar day' })).toBeInTheDocument();
       expect(screen.getByRole('radio', { name: 'Ski day' })).toBeInTheDocument();
     });
 
     it('defaults to Calendar day', async () => {
+      seedFavorites('vail-co');
       await renderHomePage();
       expect(screen.getByRole('radio', { name: 'Calendar day' })).toBeChecked();
       expect(screen.getByRole('radio', { name: 'Ski day' })).not.toBeChecked();
     });
 
     it('switches to Ski day when clicked', async () => {
+      seedFavorites('vail-co');
       const user = userEvent.setup();
       await renderHomePage();
       await user.click(screen.getByRole('radio', { name: 'Ski day' }));
@@ -621,6 +630,7 @@ describe('HomePage', () => {
     });
 
     it('can switch back to Calendar day after choosing Ski day', async () => {
+      seedFavorites('vail-co');
       const user = userEvent.setup();
       await renderHomePage();
       await user.click(screen.getByRole('radio', { name: 'Ski day' }));

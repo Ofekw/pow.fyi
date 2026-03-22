@@ -331,28 +331,33 @@ export function HomePage() {
           Free &amp; open-source ski resort forecasts for North America
         </p>
         <SearchDropdown query={query} onQueryChange={setQuery} isFav={isFav} onToggleFavorite={toggle} />
-        <div className="home__attribution-control">
-          <span className="home__attribution-label">Daily snow</span>
-          <fieldset className="home__attribution-toggle">
-            <legend className="home__sr-only">Daily snow attribution</legend>
-            {SNOW_ATTRIBUTION_OPTIONS.map((option) => (
-              <label
-                key={option.value}
-                className={`home__attribution-btn ${snowAttributionMode === option.value ? 'active' : ''}`}
-              >
-                <input
-                  className="home__attribution-input"
-                  type="radio"
-                  name="snow-attribution-home"
-                  value={option.value}
-                  checked={snowAttributionMode === option.value}
-                  onChange={() => setSnowAttributionMode(option.value)}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </fieldset>
-        </div>
+        {favoriteResorts.length > 0 && (
+          <div className="home__attribution-control">
+            <span className="home__attribution-label">Daily snow</span>
+            <fieldset className="home__attribution-toggle">
+              <legend className="home__sr-only">Daily snow attribution</legend>
+              {SNOW_ATTRIBUTION_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className={`home__attribution-btn ${snowAttributionMode === option.value ? 'active' : ''}`}
+                >
+                  <input
+                    className="home__attribution-input"
+                    type="radio"
+                    name="snow-attribution-home"
+                    value={option.value}
+                    checked={snowAttributionMode === option.value}
+                    onChange={() => setSnowAttributionMode(option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </fieldset>
+          </div>
+        )}
+        {favoriteResorts.length === 0 && (
+          <p className="home__empty">Use the search bar to find and favorite resorts</p>
+        )}
       </section>
 
       {/* Favourites section — only visible when at least one resort is favourited */}
@@ -391,9 +396,6 @@ export function HomePage() {
         </section>
       )}
 
-      {favoriteResorts.length === 0 && (
-        <p className="home__empty">Use the search bar to find and favorite resorts</p>
-      )}
 
       {/* Easter Egg: Show spinning image when user searches for "Ofek" */}
       {isOfekEasterEgg && (
