@@ -82,7 +82,9 @@ beforeEach(() => {
   deleteCacheMock.mockImplementation(() => Promise.resolve(true));
   windowEventListeners.clear();
   documentEventListeners.clear();
+  localStorage.clear();
   Date.now = mock(() => 0) as typeof Date.now;
+  localStorage.setItem('pow_weather_cache_updated_at', '0');
   Object.defineProperty(document, 'visibilityState', {
     value: 'visible',
     configurable: true,
@@ -94,10 +96,11 @@ describe('registerAppServiceWorker', () => {
     const updateSW = mock();
     registerSW.mockImplementation(() => updateSW);
 
-    registerAppServiceWorker();
+    await registerAppServiceWorker();
     const [{ onNeedRefresh }] = registerSW.mock.calls[0];
     onNeedRefresh();
-    await Promise.resolve();
+    await flushMicrotasks();
+    await flushMicrotasks();
 
     expect(registerSW).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -105,6 +108,7 @@ describe('registerAppServiceWorker', () => {
         onNeedRefresh: expect.any(Function),
       }),
     );
+    expect(deleteCacheMock).toHaveBeenCalledTimes(2);
     expect(updateSW).toHaveBeenCalledWith(true);
   });
 
@@ -116,7 +120,7 @@ describe('registerAppServiceWorker', () => {
       return updateSW;
     });
 
-    registerAppServiceWorker();
+    await registerAppServiceWorker();
 
     expect(setIntervalMock).toHaveBeenCalledTimes(2);
     for (const [callback, intervalMs] of setIntervalMock.mock.calls) {
@@ -129,7 +133,7 @@ describe('registerAppServiceWorker', () => {
   it('reloads the page when it becomes stale on focus', async () => {
     registerSW.mockImplementation(() => mock());
 
-    registerAppServiceWorker();
+    await registerAppServiceWorker();
 
     expect(windowAddEventListenerMock).toHaveBeenCalledWith('focus', expect.any(Function));
     const handleFocus = windowEventListeners.get('focus');
@@ -153,7 +157,7 @@ describe('registerAppServiceWorker', () => {
       configurable: true,
     });
 
-    registerAppServiceWorker();
+    await registerAppServiceWorker();
 
     expect(documentAddEventListenerMock).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
     const handleVisibilityChange = documentEventListeners.get('visibilitychange');
@@ -164,6 +168,19 @@ describe('registerAppServiceWorker', () => {
     await Promise.resolve();
 
     expect(deleteCacheMock).not.toHaveBeenCalled();
+    expect(reloadMock).not.toHaveBeenCalled();
+  });
+
+  it('clears weather caches on startup when the persisted cache tag is stale', async () => {
+    registerSW.mockImplementation(() => mock());
+    localStorage.setItem('pow_weather_cache_updated_at', String(60 * 60 * 1000));
+    Date.now = mock(() => 2 * 60 * 60 * 1000) as typeof Date.now;
+
+    await registerAppServiceWorker();
+
+    expect(deleteCacheMock).toHaveBeenCalledTimes(2);
+    expect(deleteCacheMock).toHaveBeenCalledWith('open-meteo-cache');
+    expect(deleteCacheMock).toHaveBeenCalledWith('nws-cache');
     expect(reloadMock).not.toHaveBeenCalled();
   });
 });

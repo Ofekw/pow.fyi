@@ -11,6 +11,8 @@ const DEFAULT_MAX_RETRIES = 8;
 const DEFAULT_BASE_DELAY_MS = 400;
 const DEFAULT_MAX_DELAY_MS = 30_000;
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+export const FETCH_CACHE_MAX_AGE_MS = 60 * 60 * 1000;
+const FETCH_CACHE_TAG_STORAGE_KEY = 'pow_weather_cache_updated_at';
 
 /* ── Response cache + in-flight deduplication ──── */
 
@@ -21,6 +23,64 @@ interface CacheEntry {
 
 const responseCache = new Map<string, CacheEntry>();
 const inflightRequests = new Map<string, Promise<unknown>>();
+let cacheGeneration = 0;
+let cacheTaggedAt: number | null = null;
+
+function readPersistedCacheTag(): number | null {
+  if (typeof localStorage === 'undefined') return null;
+
+  try {
+    const raw = localStorage.getItem(FETCH_CACHE_TAG_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCacheTag(value: number | null): void {
+  cacheTaggedAt = value;
+
+  if (typeof localStorage === 'undefined') return;
+
+  try {
+    if (value === null) {
+      localStorage.removeItem(FETCH_CACHE_TAG_STORAGE_KEY);
+      return;
+    }
+
+    localStorage.setItem(FETCH_CACHE_TAG_STORAGE_KEY, String(value));
+  } catch {
+    // Ignore storage failures — the in-memory cache still works.
+  }
+}
+
+function getCacheTag(): number | null {
+  return cacheTaggedAt ?? readPersistedCacheTag();
+}
+
+function clearFetchCacheState(): void {
+  cacheGeneration += 1;
+  responseCache.clear();
+  inflightRequests.clear();
+  writeCacheTag(null);
+}
+
+function clearStaleFetchCache(maxAgeMs: number = FETCH_CACHE_MAX_AGE_MS): void {
+  const taggedAt = getCacheTag();
+  if (taggedAt === null) return;
+  if (Date.now() - taggedAt < maxAgeMs) return;
+  clearFetchCacheState();
+}
+
+export function shouldClearWeatherCachesOnStartup(
+  maxAgeMs: number = FETCH_CACHE_MAX_AGE_MS,
+): boolean {
+  const taggedAt = getCacheTag();
+  if (taggedAt === null) return true;
+  return Date.now() - taggedAt >= maxAgeMs;
+}
 
 /**
  * Build a cache key from URL + RequestInit so that different methods/bodies
@@ -41,7 +101,7 @@ function cacheKey(url: string, init?: RequestInit): string {
  * populate the (now-empty) cache when they complete.
  */
 export function clearFetchCache(): void {
-  responseCache.clear();
+  clearFetchCacheState();
 }
 
 function shouldRetryStatus(status: number): boolean {
@@ -87,6 +147,8 @@ export async function fetchJSONWithRetry<T>(
 
   // Check response cache
   if (cacheTtlMs > 0) {
+    clearStaleFetchCache();
+
     const cached = responseCache.get(key);
     if (cached && Date.now() < cached.expiresAt) {
       return cached.data as T;
@@ -147,14 +209,21 @@ export async function fetchJSONWithRetry<T>(
   };
 
   if (cacheTtlMs > 0) {
+    const generation = cacheGeneration;
     const promise = doFetch();
     inflightRequests.set(key, promise);
     try {
       const result = await promise;
-      responseCache.set(key, { data: result, expiresAt: Date.now() + cacheTtlMs });
+      if (generation === cacheGeneration) {
+        const now = Date.now();
+        responseCache.set(key, { data: result, expiresAt: now + cacheTtlMs });
+        writeCacheTag(now);
+      }
       return result;
     } finally {
-      inflightRequests.delete(key);
+      if (inflightRequests.get(key) === promise) {
+        inflightRequests.delete(key);
+      }
     }
   }
 
