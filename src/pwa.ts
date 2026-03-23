@@ -1,25 +1,36 @@
 import { registerSW } from 'virtual:pwa-register';
-import { clearFetchCache } from '@/data/retryFetch';
+import {
+  clearFetchCache,
+  FETCH_CACHE_MAX_AGE_MS,
+  shouldClearWeatherCachesOnStartup,
+} from '@/data/retryFetch';
 
-const SW_UPDATE_INTERVAL_MS = 60 * 60 * 1000;
-const STALE_PAGE_INTERVAL_MS = 60 * 60 * 1000;
+const SW_UPDATE_INTERVAL_MS = FETCH_CACHE_MAX_AGE_MS;
+const STALE_PAGE_INTERVAL_MS = FETCH_CACHE_MAX_AGE_MS;
 const WEATHER_CACHE_NAMES = ['open-meteo-cache', 'nws-cache'] as const;
 
-export function registerAppServiceWorker() {
+async function clearWeatherCaches() {
+  clearFetchCache();
+
+  if (typeof caches === 'undefined') return;
+
+  await Promise.allSettled(WEATHER_CACHE_NAMES.map((cacheName) => caches.delete(cacheName)));
+}
+
+export async function registerAppServiceWorker() {
   const loadedAt = Date.now();
   let reloadingStalePage = false;
+
+  if (shouldClearWeatherCachesOnStartup()) {
+    await clearWeatherCaches();
+  }
 
   const reloadIfPageIsStale = async () => {
     if (reloadingStalePage) return;
     if (Date.now() - loadedAt < STALE_PAGE_INTERVAL_MS) return;
 
     reloadingStalePage = true;
-    clearFetchCache();
-
-    if (typeof caches !== 'undefined') {
-      await Promise.allSettled(WEATHER_CACHE_NAMES.map((cacheName) => caches.delete(cacheName)));
-    }
-
+    await clearWeatherCaches();
     window.location.reload();
   };
 
@@ -32,7 +43,9 @@ export function registerAppServiceWorker() {
     immediate: true,
     onNeedRefresh() {
       queueMicrotask(() => {
-        void updateSW(true);
+        void clearWeatherCaches().finally(() => {
+          void updateSW(true);
+        });
       });
     },
     onRegisteredSW(_swUrl, registration) {

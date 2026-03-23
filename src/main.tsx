@@ -9,20 +9,30 @@ import { App } from './App';
 import { registerAppServiceWorker } from './pwa';
 import './styles/index.css';
 
-registerAppServiceWorker();
+function renderApp() {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <UnitsProvider>
+        <TimezoneProvider>
+          <ShareProvider>
+            <SnowAttributionProvider>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </SnowAttributionProvider>
+          </ShareProvider>
+        </TimezoneProvider>
+      </UnitsProvider>
+    </React.StrictMode>,
+  );
+}
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <UnitsProvider>
-      <TimezoneProvider>
-        <ShareProvider>
-          <SnowAttributionProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </SnowAttributionProvider>
-        </ShareProvider>
-      </TimezoneProvider>
-    </UnitsProvider>
-  </React.StrictMode>,
-);
+async function bootstrap() {
+  try {
+    await registerAppServiceWorker();
+  } finally {
+    renderApp();
+  }
+}
+
+void bootstrap();

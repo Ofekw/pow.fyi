@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { fetchJSONWithRetry, clearFetchCache } from '@/data/retryFetch';
 
 const originalFetch = globalThis.fetch;
+const originalDateNow = Date.now;
 
 type FetchStep = Response | Error;
 
@@ -27,11 +28,14 @@ describe('fetchJSONWithRetry', () => {
     steps = [];
     fetchMock.mockClear();
     clearFetchCache();
+    localStorage.clear();
+    Date.now = originalDateNow;
     globalThis.fetch = fetchMock as unknown as typeof fetch;
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    Date.now = originalDateNow;
   });
 
   it('retries on 429 and eventually succeeds', async () => {
@@ -154,6 +158,24 @@ describe('fetchJSONWithRetry', () => {
 
     const result = await fetchJSONWithRetry<{ val: number }>(url, undefined, opts);
     expect(result.val).toBe(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('invalidates the in-memory cache when its tag is over an hour old', async () => {
+    steps = [jsonResponse({ val: 1 }), jsonResponse({ val: 2 })];
+
+    const nowMock = mock(() => 0);
+    Date.now = nowMock as typeof Date.now;
+
+    const url = 'https://example.com/stale-cache';
+    const opts = { cacheTtlMs: 2 * 60 * 60 * 1000, maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0 };
+    const first = await fetchJSONWithRetry<{ val: number }>(url, undefined, opts);
+
+    nowMock.mockImplementation(() => 60 * 60 * 1000 + 1);
+
+    const second = await fetchJSONWithRetry<{ val: number }>(url, undefined, opts);
+    expect(first.val).toBe(1);
+    expect(second.val).toBe(2);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

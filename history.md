@@ -1099,3 +1099,20 @@ The static resort listing made the homepage cluttered. The search bar provides a
 ### Key files affected
 - `src/pages/HomePage.tsx` — removed `searchResorts`, `RESORTS`, and `ResortCard` imports; removed `filtered` and `grouped` useMemo computations; removed grouped-by-region resort card sections; added empty state message for users with no favorites
 - `src/pages/__tests__/HomePage.test.tsx` — updated tests to reflect the new homepage behavior (no static resort cards, no region groupings, empty state message)
+
+## Weather Cache Freshness Guard
+
+### What changed
+Added a one-hour freshness tag for the in-memory fetch cache and clear that cache automatically when the tag is stale before serving a cached response. The PWA bootstrap now also clears weather-related service worker caches on startup when that same cache tag is missing or older than one hour, preventing reopened installed sessions from immediately rendering old forecast responses.
+
+The app bootstrap now waits for that startup weather-cache cleanup before rendering, and service-worker-triggered refreshes also purge weather caches before forcing the update.
+
+### Why
+The previous stale-page reload guard only helped already-open tabs. Reopened PWAs could still load stale Open-Meteo or NWS responses from `StaleWhileRevalidate` caches on first launch, and old in-flight/in-memory cache state could survive within long-lived app sessions.
+
+### Key files affected
+- `src/data/retryFetch.ts` — added persisted cache-tag tracking, one-hour stale invalidation, and generation-safe cache clearing
+- `src/pwa.ts` — clears weather caches on stale startup and before service-worker refresh/reload flows
+- `src/main.tsx` — delays initial render until startup cache cleanup completes
+- `src/data/__tests__/retryFetch.test.ts` — added stale tag regression coverage for the in-memory cache
+- `src/__tests__/pwa.test.ts` — added startup stale-cache coverage and updated async PWA bootstrap assertions
